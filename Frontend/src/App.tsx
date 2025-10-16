@@ -1,11 +1,7 @@
-import MainPage from "./pages/MainPage"
+import Routes from "./routes/Routes";
 
-function App() {
-  return (
-    <>
-      <MainPage />
-    </>
-  )
-}
+const App = () => {
+  return <Routes />;
+};
 
-export default App
+export default App;
