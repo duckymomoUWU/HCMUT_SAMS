@@ -1,12 +1,25 @@
 import { useRoutes } from "react-router-dom";
 
 import MainPage from "@/pages/MainPage";
+
 import ClientLayout from "@/layout/ClientLayout";
+import Booking from "@/pages/Client/Booking";
+import BookingHistory from "@/pages/Client/BookingHistory";
+import Profile from "@/pages/Client/Profile";
+import EquipmentRental from "@/pages/Client/EquipmentRental";
+import DashboardClient from "@/pages/Client/Dashboard";
+
 import AdminLayout from "@/layout/AdminLayout";
+import DashboardAdmin from "@/pages/Admin/Dashboard";
+import Setting from "@/pages/Admin/Setting";
+import UsersManagement from "@/pages/Admin/UsersManagement";
+import DevicesManagement from "@/pages/Admin/DevicesManagement";
+import OrdersManagement from "@/pages/Admin/OrdersManagement";
+import TimerManagement from "@/pages/Admin/TimerManagement";
 
 const Routes = () => {
   const elements = useRoutes([
-    // Home route
+    // Main route
     {
       path: "/",
       element: <MainPage />,
@@ -18,7 +31,23 @@ const Routes = () => {
       children: [
         {
           index: true,
-          element: <div>Client Home</div>,
+          element: <DashboardClient />,
+        },
+        {
+          path: "booking",
+          element: <Booking />,
+        },
+        {
+          path: "booking-history",
+          element: <BookingHistory />,
+        },
+        {
+          path: "profile",
+          element: <Profile />,
+        },
+        {
+          path: "equipment-rental",
+          element: <EquipmentRental />,
         },
       ],
     },
@@ -29,7 +58,27 @@ const Routes = () => {
       children: [
         {
           index: true,
-          element: <div>Admin Home</div>,
+          element: <DashboardAdmin />,
+        },
+        {
+          path: "setting",
+          element: <Setting />,
+        },
+        {
+          path: "users-management",
+          element: <UsersManagement />,
+        },
+        {
+          path: "devices-management",
+          element: <DevicesManagement />,
+        },
+        {
+          path: "orders-management",
+          element: <OrdersManagement />,
+        },
+        {
+          path: "timer-management",
+          element: <TimerManagement />,
         },
       ],
     },
