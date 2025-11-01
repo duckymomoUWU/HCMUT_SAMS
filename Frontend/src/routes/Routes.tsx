@@ -2,6 +2,8 @@ import { useRoutes } from "react-router-dom";
 
 import MainPage from "@/pages/MainPage";
 
+import SignInPage from "@/pages/SignInPage";
+
 import ClientLayout from "@/layout/ClientLayout";
 import Booking from "@/pages/Client/Booking";
 import BookingHistory from "@/pages/Client/BookingHistory";
@@ -16,6 +18,7 @@ import UsersManagement from "@/pages/Admin/UsersManagement";
 import DevicesManagement from "@/pages/Admin/DevicesManagement";
 import OrdersManagement from "@/pages/Admin/OrdersManagement";
 import TimerManagement from "@/pages/Admin/TimerManagement";
+import SignUpPage from "@/pages/SignUpPage";
 
 const Routes = () => {
   const elements = useRoutes([
@@ -23,6 +26,16 @@ const Routes = () => {
     {
       path: "/",
       element: <MainPage />,
+    },
+    // Sign in route
+    {
+      path: "/sign-in",
+      element: <SignInPage />,
+    },
+    // Sign up route
+    {
+      path: "/sign-up",
+      element: <SignUpPage />,
     },
     // Client route
     {

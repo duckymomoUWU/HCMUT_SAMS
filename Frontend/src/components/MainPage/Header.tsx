@@ -7,15 +7,17 @@ const NavLink = ({
   to,
   label,
   offset,
+  duration,
 }: {
   to: string;
   label: string;
   offset: number;
+  duration: number;
 }) => (
   <Link
     to={to}
     smooth={true}
-    duration={500}
+    duration={duration}
     offset={offset}
     className="group relative cursor-pointer text-black transition-colors duration-300"
   >
@@ -39,10 +41,15 @@ const Header = () => {
       </div>
       {/* CENTER */}
       <div className="flex gap-20 text-base font-semibold">
-        <NavLink to="san-pham" label="Trang chủ" offset={0} />
-        <NavLink to="gioi-thieu" label="Giới thiệu" offset={0} />
-        <NavLink to="co-so-vat-chat" label="Cơ sở vật chất" offset={-42} />
-        <NavLink to="lien-he" label="Liên hệ" offset={0} />
+        <NavLink to="trang-chu" label="Trang chủ" offset={0} duration={0} />
+        <NavLink to="gioi-thieu" label="Giới thiệu" offset={0} duration={800} />
+        <NavLink
+          to="co-so-vat-chat"
+          label="Cơ sở vật chất"
+          offset={-42}
+          duration={500}
+        />
+        <NavLink to="lien-he" label="Liên hệ" offset={0} duration={1000} />
       </div>
       {/* RIGHT */}
       <div className="mr-4 flex gap-4">
