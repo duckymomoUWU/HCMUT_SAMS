@@ -3,6 +3,8 @@ import { Phone, Mail, User } from "lucide-react";
 
 import { Link } from "react-scroll";
 
+import { useNavigate } from "react-router-dom";
+
 const NavLink = ({
   to,
   label,
@@ -29,6 +31,8 @@ const NavLink = ({
 );
 
 const Header = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="flex items-center justify-between bg-white p-2">
       {/* LEFT */}
@@ -41,7 +45,7 @@ const Header = () => {
       </div>
       {/* CENTER */}
       <div className="flex gap-20 text-base font-semibold">
-        <NavLink to="trang-chu" label="Trang chủ" offset={0} duration={0} />
+        <NavLink to="trang-chu" label="Trang chủ" offset={0} duration={300} />
         <NavLink to="gioi-thieu" label="Giới thiệu" offset={0} duration={800} />
         <NavLink
           to="co-so-vat-chat"
@@ -65,9 +69,9 @@ const Header = () => {
           </div>
         </div>
         {/* Đăng nhập */}
-        <div className="flex items-center gap-2 rounded-2xl bg-(--blue-light) p-2">
+        <div className="flex items-center gap-2 rounded-2xl bg-(--blue-light)  hover:cursor-pointer hover:bg-[#51A4F1] p-2">
           <User fill="white" color="white" />
-          <div className="text-base font-normal text-white">Đăng nhập</div>
+          <div className="text-base font-normal text-white" onClick={() => navigate("/login")}>Đăng nhập</div>
         </div>
       </div>
     </div>

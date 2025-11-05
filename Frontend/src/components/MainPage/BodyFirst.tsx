@@ -5,6 +5,9 @@ import Arena from "@/assets/hcmut_arena.png";
 
 import { useState, useRef, useEffect } from "react";
 
+import { useNavigate } from "react-router-dom";
+import { Link } from "react-scroll";
+
 const ScrollButton = [{ index: 0 }, { index: 1 }, { index: 2 }];
 
 const ScrollImage = [{ img: BackGround }, { img: Arena }, { img: BackGround }];
@@ -14,6 +17,8 @@ const BodyFirst = () => {
   const [isFlag, setIsFlag] = useState(true);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const navigate = useNavigate();
 
   const scroll = (dir: "left" | "right", times: number) => {
     const element = scrollRef.current;
@@ -44,7 +49,7 @@ const BodyFirst = () => {
   }, [isFlag]);
 
   return (
-    <div className="flex bg-gradient-to-bl from-[#EEEEEE] to-[#51A4F1] p-16">
+    <div className="flex bg-gradient-to-bl from-[#EEEEEE] to-[#51A4F1] p-16 h-screen">
       {/* Left */}
       <div className="w-1/2">
         <div className="mb-4 text-(--blue-med)">
@@ -62,15 +67,15 @@ const BodyFirst = () => {
         {/* Button */}
         <div className="my-4 flex gap-8">
           {/* Login */}
-          <div className="flex items-center justify-center gap-2 rounded-2xl bg-(--blue-dark) p-5">
+          <div className="flex items-center justify-center gap-2 rounded-2xl bg-(--blue-dark) hover:cursor-pointer hover:bg-[#104ddcd0] p-5">
             <UserPlus color="white" />
-            <div className="text-white">Đăng nhập vào SAMS</div>
+            <div className="text-white" onClick={() => navigate("/login")}>Đăng nhập vào SAMS</div>
           </div>
           {/* Map */}
-          <div className="flex items-center justify-center gap-2 rounded-2xl bg-white p-5">
+          <Link to="co-so-vat-chat" smooth={true} duration={500} offset={-42}className="flex items-center justify-center gap-2 rounded-2xl bg-white p-5 hover:cursor-pointer hover:bg-[#f2f2f2]">
             <MapPin color="var(--blue-light)" />
             <div className="text-(--blue-light)">Khám phá cơ sở vật chất</div>
-          </div>
+          </Link>
         </div>
         {/* Label */}
         <div className="flex">
@@ -107,9 +112,9 @@ const BodyFirst = () => {
         </div>
       </div>
       {/* Right */}
-      <div className="relative flex w-1/2 items-center justify-center">
+      <div className="relative flex w-1/2  justify-center">
         <div
-          className="scrollbar-hide flex h-full w-[80%] snap-x snap-mandatory overflow-x-hidden scroll-smooth rounded-2xl shadow-2xl"
+          className="scrollbar-hide flex h-[95%] w-[80%] snap-x snap-mandatory overflow-x-hidden scroll-smooth rounded-2xl shadow-2xl"
           ref={scrollRef}
         >
           {ScrollImage.map((item, index) => (
@@ -131,7 +136,7 @@ const BodyFirst = () => {
           </div>
         </div>
         {/* Bottom Left */}
-        <div className="text-bold absolute -bottom-6 -left-4 flex items-center justify-center gap-2 rounded-md bg-white p-4 shadow-xl">
+        <div className="text-bold absolute bottom-4 -left-4 flex items-center justify-center gap-2 rounded-md bg-white p-4 shadow-xl">
           <div className="rounded bg-[#B7E0FF] p-2">
             <MapPin color="var(--blue-light)" />
           </div>
@@ -140,7 +145,7 @@ const BodyFirst = () => {
           </div>
         </div>
         {/* Navigation */}
-        <div className="absolute bottom-5 flex gap-4">
+        <div className="absolute bottom-12 flex gap-4">
           {ScrollButton.map((item) => (
             <div
               key={item.index}

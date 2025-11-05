@@ -7,10 +7,12 @@ import Footer from "@/components/MainPage/Footer";
 const MainPage = () => {
   return (
     <div className="bg-white text-black">
-      <div id="trang-chu">
+      <div>
         <Header />
       </div>
-      <BodyFirst />
+      <div id="trang-chu">
+        <BodyFirst />
+      </div>
       <div id="co-so-vat-chat">
         <BodySecond />
       </div>
