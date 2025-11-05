@@ -49,7 +49,7 @@ const BodyFirst = () => {
   }, [isFlag]);
 
   return (
-    <div className="flex bg-gradient-to-bl from-[#EEEEEE] to-[#51A4F1] p-16 h-screen">
+    <div className="flex bg-linear-to-bl from-[#EEEEEE] to-[#51A4F1] p-16 h-screen">
       {/* Left */}
       <div className="w-1/2">
         <div className="mb-4 text-(--blue-med)">
@@ -80,7 +80,7 @@ const BodyFirst = () => {
         {/* Label */}
         <div className="flex">
           {/* Clock */}
-          <div className="flex w-[160px] flex-col items-center gap-1">
+          <div className="flex w-40 flex-col items-center gap-1">
             <div className="flex h-[60px] w-[60px] items-center justify-center rounded-sm bg-[#B7E0FF]">
               <Clock color="var(--blue-light)" width={35} height={35} />
             </div>
@@ -90,7 +90,7 @@ const BodyFirst = () => {
             </div>
           </div>
           {/* Users */}
-          <div className="flex w-[160px] flex-col items-center gap-1">
+          <div className="flex w-40 flex-col items-center gap-1">
             <div className="flex h-[60px] w-[60px] items-center justify-center rounded-sm bg-[#D3FBE1]">
               <Users color="#4FBA69" width={35} height={35} />
             </div>
@@ -100,7 +100,7 @@ const BodyFirst = () => {
             </div>
           </div>
           {/* Shield */}
-          <div className="flex w-[160px] flex-col items-center gap-1">
+          <div className="flex w-40 flex-col items-center gap-1">
             <div className="flex h-[60px] w-[60px] items-center justify-center rounded-sm bg-[#F0E2FF]">
               <Shield color="#9810FA" width={35} height={35} />
             </div>
@@ -131,7 +131,7 @@ const BodyFirst = () => {
           <div className="rounded bg-[#D3FBE1] p-2">
             <Check color="#4FBA69" width={20} height={20} />
           </div>
-          <div className="w-[160px] text-base text-black">
+          <div className="w-40 text-base text-black">
             Cơ sở vật chất hiện đại
           </div>
         </div>
@@ -149,7 +149,7 @@ const BodyFirst = () => {
           {ScrollButton.map((item) => (
             <div
               key={item.index}
-              className={`h-[12px] w-[12px] rounded-full transition-colors duration-300 ease-in-out ${item.index === isSerial ? "bg-neutral-400" : "cursor-pointer bg-gray-100"}`}
+              className={`h-3 w-3 rounded-full transition-colors duration-300 ease-in-out ${item.index === isSerial ? "bg-neutral-400" : "cursor-pointer bg-gray-100"}`}
               onClick={() => {
                 if (item.index < isSerial) {
                   scroll("left", isSerial - item.index);

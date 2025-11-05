@@ -19,6 +19,7 @@ import DevicesManagement from "@/pages/Admin/DevicesManagement";
 import OrdersManagement from "@/pages/Admin/OrdersManagement";
 import TimerManagement from "@/pages/Admin/TimerManagement";
 import SignUpPage from "@/pages/SignUpPage";
+import Test from "@/pages/Test";
 
 const Routes = () => {
   const elements = useRoutes([
@@ -36,6 +37,10 @@ const Routes = () => {
     {
       path: "/sign-up",
       element: <SignUpPage />,
+    },
+    {
+      path: "/test",
+      element: <Test />,
     },
     // Client route
     {
