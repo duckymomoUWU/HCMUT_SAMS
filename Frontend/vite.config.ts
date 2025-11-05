@@ -14,4 +14,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    host: true,
+    allowedHosts: [
+      'unenthralled-loathingly-zola.ngrok-free.dev',
+      '.ngrok-free.dev', // Allow all ngrok domains
+    ],
+  },
 })
