@@ -1,14 +1,9 @@
 import { Outlet } from "react-router-dom";
 
-import Header from "@/components/Admin/Header";
-import SlideBar from "@/components/Admin/SlideBar";
-
 const AdminLayout = () => {
   return (
-    <div className="">
-      <SlideBar />
-      <div className="">
-        <Header />
+    <div className="bg-dashboard-bg-main flex min-h-screen bg-[#51A4F1]">
+      <div className="flex-1">
         <Outlet />
       </div>
     </div>
