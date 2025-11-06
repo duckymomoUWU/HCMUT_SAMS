@@ -2,14 +2,30 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
 import { ProtectedRoute } from './ProtectedRoute';
 
-// Pages
+// Layouts
+import ClientLayout from '../layout/ClientLayout';
+import AdminLayout from '../layout/AdminLayout';
+
+// Public Pages
 import MainPage from '../pages/HomePage/MainPage';
 import LoginPage from '../pages/Auth/LoginPage';
 import RegisterPage from '../pages/Auth/RegisterPage';
 import VerifyOtpPage from '../pages/Auth/VerifyOtpPage';
 
-// Lazy load other pages for better performance
-// import DashboardPage from '../pages/Dashboard/DashboardPage';
+// Client Pages
+import ClientDashboard from '../pages/Client/Dashboard';
+import Booking from '../pages/Client/Booking';
+import BookingHistory from '../pages/Client/BookingHistory';
+import Profile from '../pages/Client/Profile';
+import EquipmentRental from '../pages/Client/EquipmentRental';
+
+// Admin Pages
+import AdminDashboard from '../pages/Admin/Dashboard';
+import Setting from '../pages/Admin/Setting';
+import UsersManagement from '../pages/Admin/UsersManagement';
+import DevicesManagement from '../pages/Admin/DevicesManagement';
+import OrdersManagement from '../pages/Admin/OrdersManagement';
+import TimerManagement from '../pages/Admin/TimerManagement';
 
 export const AppRoutes = () => {
   return (
@@ -18,39 +34,48 @@ export const AppRoutes = () => {
       <Route path={ROUTES.HOME} element={<MainPage />} />
       <Route path={ROUTES.LOGIN} element={<LoginPage />} />
       <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
-      <Route path="/verify-otp" element={<VerifyOtpPage />} />
+      <Route path={ROUTES.VERIFY_OTP} element={<VerifyOtpPage />} />
       
-      {/* Protected Routes */}
+      {/* Client Routes - Protected */}
       <Route
-        path={ROUTES.DASHBOARD}
+        path="/client"
         element={
           <ProtectedRoute>
-            <div>Dashboard (Coming Soon)</div>
+            <ClientLayout />
           </ProtectedRoute>
         }
-      />
-      
-      <Route
-        path={ROUTES.BOOKING}
-        element={
-          <ProtectedRoute>
-            <div>Booking (Coming Soon)</div>
-          </ProtectedRoute>
-        }
-      />
-      
-      {/* Admin Routes */}
+      >
+        <Route index element={<ClientDashboard />} />
+        <Route path="booking" element={<Booking />} />
+        <Route path="booking-history" element={<BookingHistory />} />
+        <Route path="profile" element={<Profile />} />
+        <Route path="equipment-rental" element={<EquipmentRental />} />
+      </Route>
+
+      {/* Admin Routes - Protected with Admin Role */}
       <Route
         path={ROUTES.ADMIN}
         element={
           <ProtectedRoute requiredRole={['admin']}>
-            <div>Admin (Coming Soon)</div>
+            <AdminLayout />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route index element={<AdminDashboard />} />
+        <Route path="setting" element={<Setting />} />
+        <Route path="users-management" element={<UsersManagement />} />
+        <Route path="devices-management" element={<DevicesManagement />} />
+        <Route path="orders-management" element={<OrdersManagement />} />
+        <Route path="timer-management" element={<TimerManagement />} />
+      </Route>
+
+      {/* Legacy Routes - Redirect for backward compatibility */}
+      <Route path="/sign-in" element={<Navigate to={ROUTES.LOGIN} replace />} />
+      <Route path="/sign-up" element={<Navigate to={ROUTES.REGISTER} replace />} />
+      <Route path={ROUTES.DASHBOARD} element={<Navigate to="/client" replace />} />
       
       {/* 404 Not Found */}
-      <Route path={ROUTES.NOT_FOUND} element={<Navigate to={ROUTES.HOME} replace />} />
+      <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
     </Routes>
   );
 };

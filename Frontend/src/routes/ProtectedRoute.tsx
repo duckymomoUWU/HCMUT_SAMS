@@ -13,7 +13,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const location = useLocation();
   const isAuthenticated = authService.isAuthenticated();
-  const user = authService.getUser();
+  const user = authService.getCurrentUser();
 
   if (!isAuthenticated) {
     // Redirect to login page but save the attempted location
@@ -22,8 +22,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Check if user has required role
   if (requiredRole && user && !requiredRole.includes(user.role)) {
-    // Redirect to dashboard or home if user doesn't have required role
-    return <Navigate to={ROUTES.DASHBOARD} replace />;
+    // Redirect to client dashboard if user doesn't have required role
+    return <Navigate to="/client" replace />;
   }
 
   return <>{children}</>;
