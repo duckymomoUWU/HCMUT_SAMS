@@ -67,12 +67,13 @@ const BodyFirst = () => {
         {/* Button */}
         <div className="my-4 flex gap-8">
           {/* Login */}
-          <div className="flex items-center justify-center gap-2 rounded-2xl bg-(--blue-dark) hover:cursor-pointer hover:bg-[#104ddcd0] p-5">
+          <div className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] hover:shadow-lg hover:brightness-110 active:scale-95 cursor-pointer p-5 hover:-translate-y-[1px]">
             <UserPlus color="white" />
             <div className="text-white" onClick={() => navigate("/login")}>Đăng nhập vào SAMS</div>
           </div>
           {/* Map */}
-          <Link to="co-so-vat-chat" smooth={true} duration={500} offset={-42}className="flex items-center justify-center gap-2 rounded-2xl bg-white p-5 hover:cursor-pointer hover:bg-[#f2f2f2]">
+          <Link to="co-so-vat-chat" smooth={true} duration={500} offset={-42}className="flex items-center justify-center gap-2 rounded-2xl bg-white p-5 hover:-translate-y-[1px] hover:shadow-md 
+             hover:brightness-95 active:scale-95 cursor-pointer">
             <MapPin color="var(--blue-light)" />
             <div className="text-(--blue-light)">Khám phá cơ sở vật chất</div>
           </Link>
@@ -81,7 +82,7 @@ const BodyFirst = () => {
         <div className="flex">
           {/* Clock */}
           <div className="flex w-40 flex-col items-center gap-1">
-            <div className="flex h-[60px] w-[60px] items-center justify-center rounded-sm bg-[#B7E0FF]">
+            <div className="flex h-[60px] w-[60px] items-center justify-center rounded-sm bg-[#B7E0FF] hover:shadow-2xl">
               <Clock color="var(--blue-light)" width={35} height={35} />
             </div>
             <div className="text-center text-lg font-medium">24/7</div>
@@ -91,7 +92,7 @@ const BodyFirst = () => {
           </div>
           {/* Users */}
           <div className="flex w-40 flex-col items-center gap-1">
-            <div className="flex h-[60px] w-[60px] items-center justify-center rounded-sm bg-[#D3FBE1]">
+            <div className="flex h-[60px] w-[60px] items-center justify-center rounded-sm bg-[#D3FBE1] hover:shadow-2xl">
               <Users color="#4FBA69" width={35} height={35} />
             </div>
             <div className="text-center text-lg font-medium">500+</div>
@@ -101,7 +102,7 @@ const BodyFirst = () => {
           </div>
           {/* Shield */}
           <div className="flex w-40 flex-col items-center gap-1">
-            <div className="flex h-[60px] w-[60px] items-center justify-center rounded-sm bg-[#F0E2FF]">
+            <div className="flex h-[60px] w-[60px] items-center justify-center rounded-sm bg-[#F0E2FF] hover:shadow-2xl">
               <Shield color="#9810FA" width={35} height={35} />
             </div>
             <div className="text-center text-lg font-medium">Prenium</div>
