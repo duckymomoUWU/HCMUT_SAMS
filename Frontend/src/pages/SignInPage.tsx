@@ -3,10 +3,76 @@ import { Eye, EyeOff } from "lucide-react";
 import Logo from "@/assets/hcmut_logo.png";
 import { useNavigate, Link } from "react-router-dom";
 import GoogleLoginButton from "@/components/common/GoogleLoginButton";
+import type { ErrorResponse } from "@/types/auth.types";
+import { validateHCMUTEmail } from "@/utils/validation";
+import { authService } from "@/services";
+import { AxiosError } from 'axios';
 
-const SignInPage = () => {
-  const [showPassword, setShowPassword] = useState(false);
+interface LoginFormData {
+  email: string;
+  password: string;
+}
+
+const SignInPage: React.FC = () => {
   const navigate = useNavigate();
+  const [formData, setFormData] = useState<LoginFormData>({
+    email: '',
+    password: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    setError('');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    // Validation
+    if (!formData.email || !formData.password) {
+      setError('Vui lòng nhập đầy đủ thông tin');
+      return;
+    }
+
+    if (!validateHCMUTEmail(formData.email)) {
+      setError('Email phải có định dạng @hcmut.edu.vn');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await authService.login(formData);
+      
+      if (response.success) {
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      const axiosError = err as AxiosError<ErrorResponse>;
+      const errorMessage = axiosError.response?.data?.message || 'Đăng nhập thất bại';
+      
+      // Handle specific error messages from backend
+      if (errorMessage === 'Please verify your email first') {
+        setError('Vui lòng xác thực email trước khi đăng nhập');
+      } else if (errorMessage === 'Invalid credentials') {
+        setError('Email hoặc mật khẩu không đúng');
+      } else if (errorMessage === 'Your account has been banned') {
+        setError('Tài khoản của bạn đã bị khóa');
+      } else {
+        setError(errorMessage);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex h-screen w-screen flex-col items-center justify-center bg-linear-to-bl from-[#EEEEEE] to-[#51A4F1]">
@@ -14,25 +80,41 @@ const SignInPage = () => {
       <div className="m-4 flex w-[32%] flex-col rounded-2xl bg-white p-10 text-black shadow-xl">
         {/* Header */}
         <div className="mb-4 flex flex-col items-center gap-4 px-16">
-          <img src={Logo} alt="HCMUT Logo" width={120} height={120} />
+          <img src={Logo} alt="HCMUT Logo" width={120} height={120} onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }} />
           <div className="text-3xl font-semibold text-(--blue-med)">
             Đăng nhập
           </div>
         </div>
 
+        {error && (
+          <div className="mb-6 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600 text-center text-sm sm:text-base">{error}</p>
+          </div>
+        )}
+
         {/* Form */}
-        <div className="my-2 flex w-full flex-col gap-4">
+        <form onSubmit={handleSubmit} className="my-2 flex w-full flex-col gap-4">
           <input
             type="text"
+            name="email"
             placeholder="Email"
             className="rounded-sm border border-gray-400 p-2 transition-all duration-200 focus:border-[#51A4F1] focus:ring-2 focus:ring-[#51A4F1] focus:outline-none"
+            value={formData.email}
+            onChange={handleChange}
+            disabled={loading}
           />
 
           <div className="relative mb-1">
             <input
               type={showPassword ? "text" : "password"}
+              name="password"
               placeholder="Mật khẩu"
               className="w-full rounded-sm border border-gray-400 p-2 pr-10 transition-all duration-200 focus:border-[#51A4F1] focus:ring-2 focus:ring-[#51A4F1] focus:outline-none"
+              value={formData.password}
+              onChange={handleChange}
+              disabled={loading}
             />
             <button
               type="button"
@@ -54,10 +136,10 @@ const SignInPage = () => {
             Quên mật khẩu
           </Link>
 
-          <button className="cursor-pointer rounded-sm bg-[#51A4F1] p-2 font-semibold text-white transition-colors duration-200 hover:bg-[#63B6FF]">
-            Đăng nhập
+          <button disabled={loading} className="cursor-pointer rounded-sm bg-[#51A4F1] p-2 font-semibold text-white transition-colors duration-200 hover:bg-[#63B6FF]">
+            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
-        </div>
+        </form>
 
         {/* Divider */}
         <div className="relative my-2 sm:my-6">
@@ -69,7 +151,7 @@ const SignInPage = () => {
           </div>
         </div>
 
-        <GoogleLoginButton />
+        <GoogleLoginButton disabled={loading}/>
 
         {/* Sign up link */}
         <div className="mt-2 flex items-center justify-center gap-1 text-sm">
@@ -81,10 +163,6 @@ const SignInPage = () => {
             Đăng ký
           </div>
         </div>
-      </div>
-      <div className="*:[a]:hover:text-primary text-muted-foreground *:[a]:underline-offetset-4 px-6 text-center text-xs text-balance *:[a]:underline">
-        Bằng cách tiếp tục, bạn đồng ý với <a href="#">Điều khoản dịch vụ</a> và{" "}
-        <a href="#">Chính sách bảo mật</a> của chúng tôi.
       </div>
     </div>
   );

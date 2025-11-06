@@ -101,7 +101,7 @@ const SignUpPage = () => {
   };
 
   return (
-    <div className="flex h-screen flex-col items-center justify-center bg-linear-to-bl from-[#EEEEEE] to-[#51A4F1]">
+    <div className="flex flex-col items-center justify-center bg-linear-to-bl from-[#EEEEEE] to-[#51A4F1] pb-3">
       {/* Box */}
       <div className="my-4 flex h-[90%] flex-col rounded-2xl bg-white px-12 py-4 text-black shadow-xl">
         {/* Header */}
