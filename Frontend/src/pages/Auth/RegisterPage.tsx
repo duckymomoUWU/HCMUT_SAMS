@@ -1,17 +1,12 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff, User, Mail, Lock, Phone } from 'lucide-react';
-import { AxiosError } from 'axios';
-import AuthLayout from '../../components/layout/AuthLayout';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../../components/ui/card';
-import { Input } from '../../components/ui/input';
-import { Button } from '../../components/ui/button';
-import GoogleLoginButton from '../../components/common/GoogleLoginButton';
-import { authService } from '../../services/authService';
-import { validateHCMUTEmail, validatePassword } from '../../utils/validation';
-import { cn } from '../../utils/cn';
-import hcmutLogo from '../../assets/hcmut_logo.png';
-import type { ErrorResponse } from '../../types/auth.types';
+import { useState } from "react";
+import { Eye, EyeOff, Lock, Mail, Phone, User } from "lucide-react";
+import Logo from "@/assets/hcmut_logo.png";
+import { useNavigate } from "react-router-dom";
+import GoogleLoginButton from "@/components/common/GoogleLoginButton";
+import { validateHCMUTEmail, validatePassword } from "@/utils/validation";
+import { AxiosError } from "axios";
+import type { ErrorResponse } from "@/types/auth.types";
+import authService from "@/services/authService";
 
 interface RegisterFormData {
   fullName: string;
@@ -21,18 +16,18 @@ interface RegisterFormData {
   phone: string;
 }
 
-const RegisterPage: React.FC = () => {
+const RegisterPage = () => {
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const [formData, setFormData] = useState<RegisterFormData>({
-    fullName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    phone: '',
+    fullName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    phone: "",
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,21 +36,26 @@ const RegisterPage: React.FC = () => {
       ...prev,
       [name]: value,
     }));
-    setError('');
+    setError("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     // Validation
-    if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword) {
-      setError('Vui lòng nhập đầy đủ thông tin bắt buộc');
+    if (
+      !formData.fullName ||
+      !formData.email ||
+      !formData.password ||
+      !formData.confirmPassword
+    ) {
+      setError("Vui lòng nhập đầy đủ thông tin bắt buộc");
       return;
     }
 
     if (!validateHCMUTEmail(formData.email)) {
-      setError('Email phải có định dạng @hcmut.edu.vn');
+      setError("Email phải có định dạng @hcmut.edu.vn");
       return;
     }
 
@@ -66,7 +66,7 @@ const RegisterPage: React.FC = () => {
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp');
+      setError("Mật khẩu xác nhận không khớp");
       return;
     }
 
@@ -86,11 +86,12 @@ const RegisterPage: React.FC = () => {
       }
     } catch (err) {
       const axiosError = err as AxiosError<ErrorResponse>;
-      const errorMessage = axiosError.response?.data?.message || 'Đăng ký thất bại';
-      
+      const errorMessage =
+        axiosError.response?.data?.message || "Đăng ký thất bại";
+
       // Handle specific error messages from backend
-      if (errorMessage === 'Email already exists') {
-        setError('Email đã tồn tại trong hệ thống');
+      if (errorMessage === "Email already exists") {
+        setError("Email đã tồn tại trong hệ thống");
       } else {
         setError(errorMessage);
       }
@@ -100,184 +101,162 @@ const RegisterPage: React.FC = () => {
   };
 
   return (
-    <AuthLayout showLoginButton={true}>
-      <Card>
-        {/* Logo */}
-        <div className="flex justify-center mb-6 sm:mb-8">
-          <img 
-            src={hcmutLogo} 
-            alt="HCMUT Logo" 
-            className={cn(
-              "object-contain",
-              "h-[120px] w-[120px]",
-              "sm:h-[160px] sm:w-[160px]",
-              "md:h-[180px] md:w-[180px]",
-              "lg:h-[200px] lg:w-[200px]"
-            )}
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
+    <div className="flex flex-col items-center justify-center bg-linear-to-bl from-[#EEEEEE] to-[#51A4F1] pb-3">
+      {/* Box */}
+      <div className="my-4 flex h-[90%] flex-col rounded-2xl bg-white px-12 py-4 text-black shadow-xl">
+        {/* Header */}
+        <div className="my-4 flex flex-col items-center px-16">
+          <img src={Logo} alt="HCMUT Logo" width={120} height={120} />
+          <div className="mt-2 text-2xl font-semibold text-(--blue-med)">
+            Đăng ký
+          </div>
+          <div className="text-sm text-gray-600">
+            Chào mừng bạn! Hãy đăng ký để bắt đầu!
+          </div>
         </div>
 
-        <CardHeader className="mb-6 sm:mb-8">
-          <CardTitle>Đăng ký</CardTitle>
-          <CardDescription className="mt-2">
-            Vui lòng nhập đầy đủ thông tin để tạo tài khoản
-          </CardDescription>
-        </CardHeader>
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-3 sm:p-4">
+            <p className="text-center text-sm text-red-600 sm:text-base">
+              {error}
+            </p>
+          </div>
+        )}
 
-        <CardContent>
-          {/* Error Message */}
-          {error && (
-            <div className="mb-6 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-center text-sm sm:text-base">{error}</p>
-            </div>
-          )}
+        {/* Register Form */}
+        <form className="flex h-full flex-col gap-2" onSubmit={handleSubmit}>
+          {/* Full Name Input */}
+          <div className="flex items-center gap-2 border border-gray-300 p-2">
+            <User className="text-gray-400 sm:left-4 sm:h-6 sm:w-6" />
+            <input
+              type="text"
+              name="fullName"
+              placeholder="Họ và tên"
+              value={formData.fullName}
+              onChange={handleChange}
+              disabled={loading}
+              className="w-full focus:outline-none"
+            />
+          </div>
 
-          {/* Register Form */}
-          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 lg:space-y-6">
-            {/* Full Name Input */}
-            <div className="relative">
-              <User className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 sm:w-6 sm:h-6" />
-              <Input
-                type="text"
-                name="fullName"
-                placeholder="Họ và tên"
-                value={formData.fullName}
-                onChange={handleChange}
-                disabled={loading}
-                className="pl-11 sm:pl-14"
-              />
-            </div>
+          {/* Email Input */}
+          <div className="flex gap-2 border border-gray-300 p-2">
+            <Mail className="text-gray-400 sm:left-4 sm:h-6 sm:w-6" />
+            <input
+              type="email"
+              name="email"
+              placeholder="Email (@hcmut.edu.vn)"
+              value={formData.email}
+              onChange={handleChange}
+              disabled={loading}
+              className="w-full focus:outline-none"
+            />
+          </div>
 
-            {/* Email Input */}
-            <div className="relative">
-              <Mail className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 sm:w-6 sm:h-6" />
-              <Input
-                type="email"
-                name="email"
-                placeholder="Email (@hcmut.edu.vn)"
-                value={formData.email}
-                onChange={handleChange}
-                disabled={loading}
-                className="pl-11 sm:pl-14"
-              />
-            </div>
+          {/* Phone Input (Optional) */}
+          <div className="flex gap-2 border border-gray-300 p-2">
+            <Phone className="text-gray-400 sm:left-4 sm:h-6 sm:w-6" />
+            <input
+              type="tel"
+              name="phone"
+              placeholder="Số điện thoại (tùy chọn)"
+              value={formData.phone}
+              onChange={handleChange}
+              disabled={loading}
+              className="w-full focus:outline-none"
+            />
+          </div>
 
-            {/* Phone Input (Optional) */}
-            <div className="relative">
-              <Phone className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 sm:w-6 sm:h-6" />
-              <Input
-                type="tel"
-                name="phone"
-                placeholder="Số điện thoại (tùy chọn)"
-                value={formData.phone}
-                onChange={handleChange}
-                disabled={loading}
-                className="pl-11 sm:pl-14"
-              />
-            </div>
-
-            {/* Password Input */}
-            <div className="relative">
-              <Lock className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 sm:w-6 sm:h-6" />
-              <Input
-                type={showPassword ? 'text' : 'password'}
-                name="password"
-                placeholder="Mật khẩu"
-                value={formData.password}
-                onChange={handleChange}
-                disabled={loading}
-                className="pl-11 sm:pl-14 pr-12"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                {showPassword ? (
-                  <Eye className="w-5 h-5 sm:w-6 sm:h-6" />
-                ) : (
-                  <EyeOff className="w-5 h-5 sm:w-6 sm:h-6" />
-                )}
-              </button>
-            </div>
-
-            {/* Confirm Password Input */}
-            <div className="relative">
-              <Lock className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 sm:w-6 sm:h-6" />
-              <Input
-                type={showConfirmPassword ? 'text' : 'password'}
-                name="confirmPassword"
-                placeholder="Xác nhận mật khẩu"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                disabled={loading}
-                className="pl-11 sm:pl-14 pr-12"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                {showConfirmPassword ? (
-                  <Eye className="w-5 h-5 sm:w-6 sm:h-6" />
-                ) : (
-                  <EyeOff className="w-5 h-5 sm:w-6 sm:h-6" />
-                )}
-              </button>
-            </div>
-
-            {/* Password Requirements */}
-            <div className="text-xs sm:text-sm text-gray-600 space-y-1">
-              <p>Mật khẩu phải có:</p>
-              <ul className="list-disc list-inside space-y-0.5 ml-2">
-                <li>Ít nhất 6 ký tự</li>
-                <li>Ít nhất 1 chữ HOA</li>
-                <li>Ít nhất 1 chữ thường</li>
-                <li>Ít nhất 1 chữ số</li>
-              </ul>
-            </div>
-
-            {/* Register Button */}
-            <Button 
-              type="submit" 
-              disabled={loading} 
-              variant="secondary"
-              size="xl"
-              className="w-full rounded-2xl sm:rounded-[20px]"
+          {/* Password Input */}
+          <div className="flex gap-2 border border-gray-300 p-2">
+            <Lock className="text-gray-400 sm:left-4 sm:h-6 sm:w-6" />
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              placeholder="Mật khẩu"
+              value={formData.password}
+              onChange={handleChange}
+              disabled={loading}
+              className="w-full focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="text-gray-500 transition-colors hover:text-[#51A4F1] sm:right-4"
             >
-              {loading ? 'Đang đăng ký...' : 'Tiếp tục'}
-            </Button>
+              {showPassword ? (
+                <Eye className="h-4 w-4 sm:h-5 sm:w-5" />
+              ) : (
+                <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" />
+              )}
+            </button>
+          </div>
 
-            {/* Divider */}
-            <div className="relative my-6 sm:my-8">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-xs sm:text-sm">
-                <span className="px-3 sm:px-4 bg-white text-gray-500">Hoặc</span>
-              </div>
+          {/* Confirm Password Input */}
+          <div className="flex gap-2 border border-gray-300 p-2">
+            <Lock className="text-gray-400 sm:left-4 sm:h-6 sm:w-6" />
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              name="confirmPassword"
+              placeholder="Xác nhận mật khẩu"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              disabled={loading}
+              className="w-full focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="text-gray-500 transition-colors hover:text-[#51A4F1] sm:right-4"
+            >
+              {showConfirmPassword ? (
+                <Eye className="h-4 w-4 sm:h-5 sm:w-5" />
+              ) : (
+                <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" />
+              )}
+            </button>
+          </div>
+
+          {/* Register Button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-2 cursor-pointer rounded-sm bg-[#51A4F1] p-2 font-semibold text-white transition-colors duration-200 hover:bg-[#63B6FF]"
+          >
+            {loading ? "Đang đăng ký..." : "Tiếp tục"}
+          </button>
+
+          {/* Divider */}
+          <div className="relative my-2 sm:my-2">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
             </div>
-
-            {/* Google Register Button */}
-            <GoogleLoginButton disabled={loading} />
-
-            {/* Login Link */}
-            <div className="text-center mt-4 sm:mt-6 text-base sm:text-lg lg:text-xl">
-              <span className="text-black">Đã có tài khoản? </span>
-              <Link 
-                to="/login"
-                className="text-[#0957A8] hover:underline font-medium transition-all"
-              >
-                Đăng nhập
-              </Link>
+            <div className="relative flex justify-center text-xs sm:text-sm">
+              <span className="bg-white px-3 text-gray-500 sm:px-4">Hoặc</span>
             </div>
-          </form>
-        </CardContent>
-      </Card>
-    </AuthLayout>
+          </div>
+
+          {/* Google Register Button */}
+          <GoogleLoginButton disabled={loading} />
+        </form>
+
+        {/* Sign up link */}
+        <div className="mt-1 flex items-center justify-center gap-1 text-sm">
+          <span>Đã có tài khoản</span>
+          <div
+            onClick={() => navigate("/sign-in")}
+            className="cursor-pointer rounded-sm p-1 font-medium text-[#51A4F1] underline hover:text-[#63B6FF]"
+          >
+            Đăng nhập
+          </div>
+        </div>
+      </div>
+      <div className="*:[a]:hover:text-primary text-muted-foreground *:[a]:underline-offetset-4 px-6 text-center text-xs text-balance *:[a]:underline">
+        Bằng cách tiếp tục, bạn đồng ý với <a href="#">Điều khoản dịch vụ</a> và{" "}
+        <a href="#">Chính sách bảo mật</a> của chúng tôi.
+      </div>
+    </div>
   );
 };
 

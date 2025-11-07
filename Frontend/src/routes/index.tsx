@@ -1,35 +1,31 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { ROUTES } from '../constants/routes';
-import { ProtectedRoute } from './ProtectedRoute';
+import { Routes, Route, Navigate } from "react-router-dom";
+import { ROUTES } from "../constants/routes";
+import { ProtectedRoute } from "./ProtectedRoute";
 
 // Layouts
-import ClientLayout from '../layout/ClientLayout';
-import AdminLayout from '../layout/AdminLayout';
+import ClientLayout from "../layout/ClientLayout";
+import AdminLayout from "../layout/AdminLayout";
 
 // Public Pages
-import MainPage from '../pages/HomePage/MainPage';
-import LoginPage from '../pages/Auth/LoginPage';
-import RegisterPage from '../pages/Auth/RegisterPage';
-import VerifyOtpPage from '../pages/Auth/VerifyOtpPage';
+import MainPage from "../pages/HomePage/MainPage";
+import LoginPage from "../pages/Auth/LoginPage";
+import RegisterPage from "../pages/Auth/RegisterPage";
+import VerifyOtpPage from "../pages/Auth/VerifyOtpPage";
 
 // Client Pages
-import ClientDashboard from '../pages/Client/Dashboard';
-import Booking from '../pages/Client/Booking';
-import BookingHistory from '../pages/Client/BookingHistory';
-import Profile from '../pages/Client/Profile';
-import EquipmentRental from '../pages/Client/EquipmentRental';
+import ClientDashboard from "../pages/Client/Dashboard";
+import Booking from "../pages/Client/Booking";
+import BookingHistory from "../pages/Client/BookingHistory";
+import Profile from "../pages/Client/Profile";
+import EquipmentRental from "../pages/Client/EquipmentRental";
 
 // Admin Pages
-import AdminDashboard from '../pages/Admin/Dashboard';
-import Setting from '../pages/Admin/Setting';
-import UsersManagement from '../pages/Admin/UsersManagement';
-import DevicesManagement from '../pages/Admin/DevicesManagement';
-import OrdersManagement from '../pages/Admin/OrdersManagement';
-import TimerManagement from '../pages/Admin/TimerManagement';
-
-// test
-import SignInPage from '@/pages/SignInPage';
-import SignUpPage from '@/pages/SignUpPage';
+import AdminDashboard from "../pages/Admin/Dashboard";
+import Setting from "../pages/Admin/Setting";
+import UsersManagement from "../pages/Admin/UsersManagement";
+import DevicesManagement from "../pages/Admin/DevicesManagement";
+import OrdersManagement from "../pages/Admin/OrdersManagement";
+import TimerManagement from "../pages/Admin/TimerManagement";
 
 export const AppRoutes = () => {
   return (
@@ -39,9 +35,7 @@ export const AppRoutes = () => {
       <Route path={ROUTES.LOGIN} element={<LoginPage />} />
       <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
       <Route path={ROUTES.VERIFY_OTP} element={<VerifyOtpPage />} />
-      <Route path="/signin" element={<SignInPage />} />
-      <Route path='/signup' element={<SignUpPage />} />
-      
+
       {/* Client Routes - Protected */}
       <Route
         path="/client"
@@ -63,7 +57,7 @@ export const AppRoutes = () => {
         path={ROUTES.ADMIN}
         element={
           // <ProtectedRoute requiredRole={['admin']}>
-            <AdminLayout />
+          <AdminLayout />
           // </ProtectedRoute>
         }
       >
@@ -77,9 +71,15 @@ export const AppRoutes = () => {
 
       {/* Legacy Routes - Redirect for backward compatibility */}
       <Route path="/sign-in" element={<Navigate to={ROUTES.LOGIN} replace />} />
-      <Route path="/sign-up" element={<Navigate to={ROUTES.REGISTER} replace />} />
-      <Route path={ROUTES.DASHBOARD} element={<Navigate to="/client" replace />} />
-      
+      <Route
+        path="/sign-up"
+        element={<Navigate to={ROUTES.REGISTER} replace />}
+      />
+      <Route
+        path={ROUTES.DASHBOARD}
+        element={<Navigate to="/client" replace />}
+      />
+
       {/* 404 Not Found */}
       <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
     </Routes>

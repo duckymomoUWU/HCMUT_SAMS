@@ -1,17 +1,12 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
-import { AxiosError } from 'axios';
-import AuthLayout from '../../components/layout/AuthLayout';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
-import { Input } from '../../components/ui/input';
-import { Button } from '../../components/ui/button';
-import GoogleLoginButton from '../../components/common/GoogleLoginButton';
-import { authService } from '../../services/authService';
-import { validateHCMUTEmail } from '../../utils/validation';
-import { cn } from '../../utils/cn';
-import hcmutLogo from '../../assets/hcmut_logo.png';
-import type { ErrorResponse } from '../../types/auth.types';
+import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import Logo from "@/assets/hcmut_logo.png";
+import { useNavigate, Link } from "react-router-dom";
+import GoogleLoginButton from "@/components/common/GoogleLoginButton";
+import type { ErrorResponse } from "@/types/auth.types";
+import { validateHCMUTEmail } from "@/utils/validation";
+import { authService } from "@/services";
+import { AxiosError } from "axios";
 
 interface LoginFormData {
   email: string;
@@ -21,11 +16,11 @@ interface LoginFormData {
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState<LoginFormData>({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,21 +29,21 @@ const LoginPage: React.FC = () => {
       ...prev,
       [name]: value,
     }));
-    setError('');
+    setError("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     // Validation
     if (!formData.email || !formData.password) {
-      setError('Vui lòng nhập đầy đủ thông tin');
+      setError("Vui lòng nhập đầy đủ thông tin");
       return;
     }
 
     if (!validateHCMUTEmail(formData.email)) {
-      setError('Email phải có định dạng @hcmut.edu.vn');
+      setError("Email phải có định dạng @hcmut.edu.vn");
       return;
     }
 
@@ -56,21 +51,22 @@ const LoginPage: React.FC = () => {
 
     try {
       const response = await authService.login(formData);
-      
+
       if (response.success) {
-        navigate('/dashboard');
+        navigate("/dashboard");
       }
     } catch (err) {
       const axiosError = err as AxiosError<ErrorResponse>;
-      const errorMessage = axiosError.response?.data?.message || 'Đăng nhập thất bại';
-      
+      const errorMessage =
+        axiosError.response?.data?.message || "Đăng nhập thất bại";
+
       // Handle specific error messages from backend
-      if (errorMessage === 'Please verify your email first') {
-        setError('Vui lòng xác thực email trước khi đăng nhập');
-      } else if (errorMessage === 'Invalid credentials') {
-        setError('Email hoặc mật khẩu không đúng');
-      } else if (errorMessage === 'Your account has been banned') {
-        setError('Tài khoản của bạn đã bị khóa');
+      if (errorMessage === "Please verify your email first") {
+        setError("Vui lòng xác thực email trước khi đăng nhập");
+      } else if (errorMessage === "Invalid credentials") {
+        setError("Email hoặc mật khẩu không đúng");
+      } else if (errorMessage === "Your account has been banned") {
+        setError("Tài khoản của bạn đã bị khóa");
       } else {
         setError(errorMessage);
       }
@@ -80,123 +76,110 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <AuthLayout showLoginButton={false}>
-      <Card>
-        {/* Logo */}
-        <div className="flex justify-center mb-6 sm:mb-8">
-          <img 
-            src={hcmutLogo} 
-            alt="HCMUT Logo" 
-            className={cn(
-              "object-contain",
-              "h-[120px] w-[120px]",
-              "sm:h-[160px] sm:w-[160px]",
-              "md:h-[180px] md:w-[180px]",
-              "lg:h-[200px] lg:w-[200px]"
-            )}
+    <div className="flex h-screen w-screen flex-col items-center justify-center bg-linear-to-bl from-[#EEEEEE] to-[#51A4F1]">
+      {/* Box */}
+      <div className="m-4 flex w-[32%] flex-col rounded-2xl bg-white p-10 text-black shadow-xl">
+        {/* Header */}
+        <div className="mb-4 flex flex-col items-center gap-4 px-16">
+          <img
+            src={Logo}
+            alt="HCMUT Logo"
+            width={120}
+            height={120}
             onError={(e) => {
-              e.currentTarget.style.display = 'none';
+              e.currentTarget.style.display = "none";
             }}
           />
+          <div className="text-3xl font-semibold text-(--blue-med)">
+            Đăng nhập
+          </div>
         </div>
 
-        <CardHeader className="mb-6 sm:mb-8">
-          <CardTitle>Đăng nhập</CardTitle>
-        </CardHeader>
+        {error && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-3 sm:p-4">
+            <p className="text-center text-sm text-red-600 sm:text-base">
+              {error}
+            </p>
+          </div>
+        )}
 
-        <CardContent>
-          {/* Error Message */}
-          {error && (
-            <div className="mb-6 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-center text-sm sm:text-base">{error}</p>
-            </div>
-          )}
+        {/* Form */}
+        <form
+          onSubmit={handleSubmit}
+          className="my-2 flex w-full flex-col gap-4"
+        >
+          <input
+            type="text"
+            name="email"
+            placeholder="Email"
+            className="rounded-sm border border-gray-400 p-2 transition-all duration-200 focus:border-[#51A4F1] focus:ring-2 focus:ring-[#51A4F1] focus:outline-none"
+            value={formData.email}
+            onChange={handleChange}
+            disabled={loading}
+          />
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 lg:space-y-6">
-            {/* Email Input */}
-            <div>
-              <Input
-                type="email"
-                name="email"
-                placeholder="Email"
-                value={formData.email}
-                onChange={handleChange}
-                disabled={loading}
-              />
-            </div>
-
-            {/* Password Input */}
-            <div className="relative">
-              <Input
-                type={showPassword ? 'text' : 'password'}
-                name="password"
-                placeholder="Mật khẩu"
-                value={formData.password}
-                onChange={handleChange}
-                disabled={loading}
-                className="pr-12"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                {showPassword ? (
-                  <Eye className="w-5 h-5 sm:w-6 sm:h-6" />
-                ) : (
-                  <EyeOff className="w-5 h-5 sm:w-6 sm:h-6" />
-                )}
-              </button>
-            </div>
-
-            {/* Forgot Password */}
-            <div className="flex justify-end">
-              <Link 
-                to="/forgot-password"
-                className="text-sm sm:text-base lg:text-lg text-black hover:text-[#007BE5] underline sm:no-underline transition-colors"
-              >
-                Forgot password
-              </Link>
-            </div>
-
-            {/* Login Button */}
-            <Button 
-              type="submit" 
-              disabled={loading} 
-              size="xl"
-              className="w-full rounded-2xl sm:rounded-[20px]"
+          <div className="relative mb-1">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              placeholder="Mật khẩu"
+              className="w-full rounded-sm border border-gray-400 p-2 pr-10 transition-all duration-200 focus:border-[#51A4F1] focus:ring-2 focus:ring-[#51A4F1] focus:outline-none"
+              value={formData.password}
+              onChange={handleChange}
+              disabled={loading}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500 transition-colors hover:text-[#51A4F1]"
             >
-              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
-            </Button>
+              {showPassword ? (
+                <EyeOff size={18} strokeWidth={1.8} />
+              ) : (
+                <Eye size={18} strokeWidth={1.8} />
+              )}
+            </button>
+          </div>
 
-            {/* Divider */}
-            <div className="relative my-6 sm:my-8">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-xs sm:text-sm">
-                <span className="px-3 sm:px-4 bg-white text-gray-500">Hoặc</span>
-              </div>
-            </div>
+          <Link
+            to="/forgot-password"
+            className="mb-1 flex justify-end underline transition-colors hover:text-[#007BE5] sm:no-underline"
+          >
+            Quên mật khẩu
+          </Link>
 
-            {/* Google Login Button */}
-            <GoogleLoginButton disabled={loading} />
+          <button
+            disabled={loading}
+            className="cursor-pointer rounded-sm bg-[#51A4F1] p-2 font-semibold text-white transition-colors duration-200 hover:bg-[#63B6FF]"
+          >
+            {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+          </button>
+        </form>
 
-            {/* Register Link */}
-            <div className="text-center mt-4 sm:mt-6 text-base sm:text-lg lg:text-xl">
-              <span className="text-black">Tạo tài khoản mới </span>
-              <Link 
-                to="/register"
-                className="text-[#0957A8] hover:underline font-medium transition-all"
-              >
-                Đăng kí
-              </Link>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </AuthLayout>
+        {/* Divider */}
+        <div className="relative my-2 sm:my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center text-xs sm:text-sm">
+            <span className="bg-white px-3 text-gray-500 sm:px-4">Hoặc</span>
+          </div>
+        </div>
+
+        <GoogleLoginButton disabled={loading} />
+
+        {/* Sign up link */}
+        <div className="mt-2 flex items-center justify-center gap-1 text-sm">
+          <span>Tạo tài khoản mới </span>
+          <div
+            onClick={() => navigate("/sign-up")}
+            className="cursor-pointer rounded-sm p-1 font-medium text-[#51A4F1] underline hover:text-[#63B6FF]"
+          >
+            Đăng ký
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
