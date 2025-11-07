@@ -56,9 +56,9 @@ export const AppRoutes = () => {
       <Route
         path={ROUTES.ADMIN}
         element={
-          <ProtectedRoute requiredRole={['admin']}>
+          // <ProtectedRoute requiredRole={['admin']}>
             <AdminLayout />
-          </ProtectedRoute>
+          // </ProtectedRoute>
         }
       >
         <Route index element={<AdminDashboard />} />
