@@ -2,8 +2,8 @@ import { Bell, LogOut } from "lucide-react";
 import defaultAvatar from "@/assets/admin_avatar.jpg";
 
 const userAvatar = "";
-
-const Header = () => {
+const userName = "Linh Nam"
+const Header = () => { 
   return (
     <header
       className="
@@ -13,10 +13,10 @@ const Header = () => {
         px-6 py-3 shadow-sm
       "
     >
-      {/* 👋 Greeting + Role */}
+      {/* Greeting + Role */}
       <div className="flex flex-col">
         <h1 className="text-2xl font-semibold text-gray-800">
-          Xin chào, <span className="text-blue-600">Quản trị viên</span>
+          Xin chào, <span className="text-blue-600"> {userName}</span>
         </h1>
         <span className="text-sm text-gray-700">
           Vai trò:{" "}
@@ -26,7 +26,7 @@ const Header = () => {
         </span>
       </div>
 
-      {/* 🔔 Notification + Avatar + Logout */}
+      {/* Notification + Avatar + Logout */}
       <div className="flex items-center gap-6">
         {/* Notification */}
         <button className="relative hover:bg-gray-50 p-2 rounded-full transition">

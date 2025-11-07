@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-
 interface StatCardProps {
   title: string;
   value: string | number;
@@ -7,7 +6,6 @@ interface StatCardProps {
   colorClass?: string; 
   icon?: ReactNode;
 }
-
 const StatCard = ({ title, value, note, colorClass = "text-gray-900", icon }: StatCardProps) => {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between min-h-[120px]">
@@ -26,7 +24,4 @@ const StatCard = ({ title, value, note, colorClass = "text-gray-900", icon }: St
     </div>
   );
 };
-
 export default StatCard;
-
-

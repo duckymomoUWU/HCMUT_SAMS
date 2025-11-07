@@ -17,7 +17,6 @@ interface Device {
   status: DeviceStatus;
 }
 
-// Dữ liệu kho hàng
 const devices: Device[] = [
   { name: "Vợt Tennis Wilson", type: "Tennis", location: "Sân A1", total: 6, available: 2, borrowed: 2, broken: 1, lastCheck: "10/9/2025", status: "Tốt" },
   { name: "Bóng Tennis Dunlop", type: "Tennis", location: "Tủ B1", total: 6, available: 2, borrowed: 2, broken: 1, lastCheck: "10/9/2025", status: "Khá" },
@@ -27,7 +26,6 @@ const devices: Device[] = [
   { name: "Vợt Cầu Lông Yonex", type: "Badminton", location: "Tủ A2", total: 6, available: 2, borrowed: 2, broken: 1, lastCheck: "10/9/2025", status: "Tốt" },
 ];
 
-// Dữ liệu cảnh báo
 const lowStock = [
   { name: "Lưới bóng chuyền", remaining: 2 },
   { name: "Giày Thể Thao (Size 39–42)", remaining: 3 },
@@ -39,21 +37,17 @@ const maintenance = [
   { name: "Bóng Tennis Dunlop", issue: 4 },
 ];
 
-// Dữ liệu tab “Cho mượn”
 const loanList = [
   { name: "Vợt Tennis Wilson", user: "Nguyễn Văn A", qty: 2, status: "Đang mượn", borrow: "24/05/2025", return: "27/05/2025" },
   { name: "Vợt Tennis Wilson", user: "Nguyễn Văn A", qty: 2, status: "Đã trả", borrow: "24/05/2025", return: "27/05/2025" },
   { name: "Vợt Tennis Wilson", user: "Nguyễn Văn A", qty: 2, status: "Quá hạn", borrow: "24/05/2025", return: "27/05/2025" },
 ];
 
-// Dữ liệu tab “Bảo trì”
 const maintenanceList = [
   { name: "Vợt Tennis Wilson", location: "Tennis - Sân Thể Thao - Tủ A1", qty: 2, status: "Tốt", last: "27/05/2025" },
   { name: "Vợt Cầu Lông Yonex", location: "Badminton - Tủ B1", qty: 3, status: "Khá", last: "25/05/2025" },
   { name: "Giày Thể Thao (Size 39)", location: "Footwear - Tủ D1", qty: 1, status: "Cần sửa", last: "22/05/2025" },
 ];
-
-// ===============================================================
 
 const DeviceCard = ({ d }: { d: Device }) => (
   <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition">

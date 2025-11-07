@@ -281,10 +281,6 @@ const AdminSettings = () => {
   );
 };
 
-export default AdminSettings;
-
-// ==== COMPONENT PHỤ ====
-
 interface InputFieldProps {
   icon: React.ReactNode;
   label: string;
@@ -348,3 +344,4 @@ const PasswordField = ({
     </div>
   </div>
 );
+export default AdminSettings;

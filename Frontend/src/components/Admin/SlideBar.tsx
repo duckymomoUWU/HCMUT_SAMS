@@ -1,9 +1,3 @@
-// const SlideBar = () => {
-//   return <div>SlideBar</div>;
-// };
-
-// export default SlideBar;
-
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -23,7 +17,7 @@ const menu = [
   { name: "Cài đặt", path: "/admin/setting", icon: <UserCircle2 size={18} /> },
 ];
 
-const SlideBar = () => {
+const SlideBar = () => { 
   const location = useLocation();
 
   return (

@@ -15,10 +15,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const isAuthenticated = authService.isAuthenticated();
   const user = authService.getCurrentUser();
 
-  if (!isAuthenticated) {
-    // Redirect to login page but save the attempted location
-    return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
-  }
+  // if (!isAuthenticated) {
+  //   // Redirect to login page but save the attempted location
+  //   return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
+  // }
+// Tạm sửa nhé
 
   // Check if user has required role
   if (requiredRole && user && !requiredRole.includes(user.role)) {

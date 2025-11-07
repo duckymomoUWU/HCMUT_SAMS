@@ -16,7 +16,7 @@ const AdminLayout = () => {
         <main
           className="
             flex-1 ml-64 p-6 
-            pt-20          /* chừa chỗ cho Header cao ~80px */
+            pt-20         
             overflow-y-auto
             [scrollbar-gutter:stable]
           "
