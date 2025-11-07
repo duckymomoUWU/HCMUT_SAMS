@@ -1,19 +1,15 @@
 import { Bell, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import defaultAvatar from "@/assets/hcmut_logo.png";
 
 const userAvatar = "";
-const userName = "Bro"
+const userName = "Bro";
 
-const Header = () => { 
+const Header = () => {
+  const navigate = useNavigate();
+
   return (
-    <header
-      className="
-        fixed top-0 left-64 right-0 z-50
-        flex items-center justify-between
-        bg-white border-b border-gray-200
-        px-6 py-3 shadow-sm
-      "
-    >
+    <header className="fixed top-0 right-0 left-64 z-50 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3 shadow-sm">
       {/* Greeting + Role */}
       <div className="flex flex-col">
         <h1 className="text-2xl font-semibold text-gray-800">
@@ -21,7 +17,7 @@ const Header = () => {
         </h1>
         <span className="text-sm text-gray-700">
           Vai trò:{" "}
-          <span className="px-2 py-0.5 text-xs bg-red-100 text-red-700 rounded-full font-medium">
+          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
             Người dùng
           </span>
         </span>
@@ -30,22 +26,22 @@ const Header = () => {
       {/* Notification + Avatar + Logout */}
       <div className="flex items-center gap-6">
         {/* Notification */}
-        <button className="relative hover:bg-gray-50 p-2 rounded-full transition">
+        <button className="relative rounded-full p-2 transition hover:bg-gray-50">
           <Bell size={20} className="text-gray-600" />
-          <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+          <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500"></span>
         </button>
 
         {/* Avatar */}
         <img
           src={userAvatar || defaultAvatar}
           alt="User avatar"
-          className="w-8 h-8 rounded-full border object-cover"
+          className="h-8 w-8 rounded-full border object-cover"
         />
 
         {/* Logout */}
         <button
-          onClick={() => console.log("Đăng xuất")}
-          className="flex items-center gap-2 text-sm text-gray-600 hover:text-red-600 transition"
+          onClick={() => navigate("/")}
+          className="flex items-center gap-2 text-sm text-gray-600 transition hover:text-red-600"
         >
           <LogOut size={18} />
           Đăng xuất

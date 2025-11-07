@@ -2,8 +2,8 @@
   border: none !important;
   width: 100% !important;
   font-size: 0.9rem;
-  background: #ffffffff !important; 
-  color: #374151 !important; 
+  background: #ffffffff !important;
+  color: #374151 !important;
   border-radius: 0.75rem;
 }
 
@@ -59,7 +59,7 @@
   color: #d1d5db !important; /* text-gray-300 */
 }
 
-.reat-calendar * {
-    color: inherit !important;
-    background-color: transparent !important;
+.react-calendar * {
+  color: inherit !important;
+  background-color: transparent !important;
 }
