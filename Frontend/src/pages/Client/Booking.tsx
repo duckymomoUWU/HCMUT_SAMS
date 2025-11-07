@@ -3,7 +3,7 @@ import { CalendarDays, Clock, CheckCircle2 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
 import StatCard from "@/components/Admin/StatCard";
 import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css";
+import "react-calendar/dist/calendar.css";
 import "@/pages/Client/calendar.css";
 
 const Booking = () => {
