@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Bell, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import defaultAvatar from "@/assets/hcmut_logo.png";
@@ -7,6 +8,7 @@ const userName = "Bro";
 
 const Header = () => {
   const navigate = useNavigate();
+  const [showConfirmLogout, setShowConfirmLogout] = useState(false);
 
   return (
     <header className="fixed top-0 right-0 left-64 z-50 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3 shadow-sm">
@@ -40,13 +42,45 @@ const Header = () => {
 
         {/* Logout */}
         <button
-          onClick={() => navigate("/")}
+          onClick={() => setShowConfirmLogout(true)}
           className="flex items-center gap-2 text-sm text-gray-600 transition hover:text-red-600"
         >
           <LogOut size={18} />
           Đăng xuất
         </button>
       </div>
+
+      {/* Modal xác nhận đăng xuất */}
+      {showConfirmLogout && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="relative w-[450px] rounded-xl bg-white p-6 shadow-lg">
+            <h3 className="mb-1 text-lg font-semibold text-gray-800">
+              Xác nhận đăng xuất
+            </h3>
+            <p className="mb-4 text-sm text-gray-500">
+              Bạn có chắc chắn muốn đăng xuất khỏi tài khoản không?
+            </p>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setShowConfirmLogout(false)}
+                className="rounded-md border px-4 py-2 text-gray-600 hover:bg-gray-50"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => {
+                  setShowConfirmLogout(false);
+                  navigate("/");
+                }}
+                className="rounded-md bg-red-600 px-4 py-2 font-medium text-white hover:bg-red-700"
+              >
+                Đăng xuất
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
