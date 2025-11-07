@@ -49,7 +49,7 @@ const BodyFirst = () => {
   }, [isFlag]);
 
   return (
-    <div className="flex bg-gradient-to-bl from-[#EEEEEE] to-[#51A4F1] p-16 h-screen">
+    <div className="flex bg-linear-to-bl from-[#EEEEEE] to-[#51A4F1] p-16 h-screen">
       {/* Left */}
       <div className="w-1/2">
         <div className="mb-4 text-(--blue-med)">
@@ -67,12 +67,13 @@ const BodyFirst = () => {
         {/* Button */}
         <div className="my-4 flex gap-8">
           {/* Login */}
-          <div className="flex items-center justify-center gap-2 rounded-2xl bg-(--blue-dark) hover:cursor-pointer hover:bg-[#104ddcd0] p-5">
+          <div className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] hover:shadow-lg hover:brightness-110 active:scale-95 cursor-pointer p-5 hover:-translate-y-[1px]">
             <UserPlus color="white" />
             <div className="text-white" onClick={() => navigate("/login")}>Đăng nhập vào SAMS</div>
           </div>
           {/* Map */}
-          <Link to="co-so-vat-chat" smooth={true} duration={500} offset={-42}className="flex items-center justify-center gap-2 rounded-2xl bg-white p-5 hover:cursor-pointer hover:bg-[#f2f2f2]">
+          <Link to="co-so-vat-chat" smooth={true} duration={500} offset={-42}className="flex items-center justify-center gap-2 rounded-2xl bg-white p-5 hover:-translate-y-[1px] hover:shadow-md 
+             hover:brightness-95 active:scale-95 cursor-pointer">
             <MapPin color="var(--blue-light)" />
             <div className="text-(--blue-light)">Khám phá cơ sở vật chất</div>
           </Link>
@@ -80,8 +81,8 @@ const BodyFirst = () => {
         {/* Label */}
         <div className="flex">
           {/* Clock */}
-          <div className="flex w-[160px] flex-col items-center gap-1">
-            <div className="flex h-[60px] w-[60px] items-center justify-center rounded-sm bg-[#B7E0FF]">
+          <div className="flex w-40 flex-col items-center gap-1">
+            <div className="flex h-[60px] w-[60px] items-center justify-center rounded-sm bg-[#B7E0FF] hover:shadow-2xl">
               <Clock color="var(--blue-light)" width={35} height={35} />
             </div>
             <div className="text-center text-lg font-medium">24/7</div>
@@ -90,8 +91,8 @@ const BodyFirst = () => {
             </div>
           </div>
           {/* Users */}
-          <div className="flex w-[160px] flex-col items-center gap-1">
-            <div className="flex h-[60px] w-[60px] items-center justify-center rounded-sm bg-[#D3FBE1]">
+          <div className="flex w-40 flex-col items-center gap-1">
+            <div className="flex h-[60px] w-[60px] items-center justify-center rounded-sm bg-[#D3FBE1] hover:shadow-2xl">
               <Users color="#4FBA69" width={35} height={35} />
             </div>
             <div className="text-center text-lg font-medium">500+</div>
@@ -100,8 +101,8 @@ const BodyFirst = () => {
             </div>
           </div>
           {/* Shield */}
-          <div className="flex w-[160px] flex-col items-center gap-1">
-            <div className="flex h-[60px] w-[60px] items-center justify-center rounded-sm bg-[#F0E2FF]">
+          <div className="flex w-40 flex-col items-center gap-1">
+            <div className="flex h-[60px] w-[60px] items-center justify-center rounded-sm bg-[#F0E2FF] hover:shadow-2xl">
               <Shield color="#9810FA" width={35} height={35} />
             </div>
             <div className="text-center text-lg font-medium">Prenium</div>
@@ -131,7 +132,7 @@ const BodyFirst = () => {
           <div className="rounded bg-[#D3FBE1] p-2">
             <Check color="#4FBA69" width={20} height={20} />
           </div>
-          <div className="w-[160px] text-base text-black">
+          <div className="w-40 text-base text-black">
             Cơ sở vật chất hiện đại
           </div>
         </div>
@@ -149,7 +150,7 @@ const BodyFirst = () => {
           {ScrollButton.map((item) => (
             <div
               key={item.index}
-              className={`h-[12px] w-[12px] rounded-full transition-colors duration-300 ease-in-out ${item.index === isSerial ? "bg-neutral-400" : "cursor-pointer bg-gray-100"}`}
+              className={`h-3 w-3 rounded-full transition-colors duration-300 ease-in-out ${item.index === isSerial ? "bg-neutral-400" : "cursor-pointer bg-gray-100"}`}
               onClick={() => {
                 if (item.index < isSerial) {
                   scroll("left", isSerial - item.index);

@@ -27,6 +27,10 @@ import DevicesManagement from '../pages/Admin/DevicesManagement';
 import OrdersManagement from '../pages/Admin/OrdersManagement';
 import TimerManagement from '../pages/Admin/TimerManagement';
 
+// test
+import SignInPage from '@/pages/SignInPage';
+import SignUpPage from '@/pages/SignUpPage';
+
 export const AppRoutes = () => {
   return (
     <Routes>
@@ -35,6 +39,8 @@ export const AppRoutes = () => {
       <Route path={ROUTES.LOGIN} element={<LoginPage />} />
       <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
       <Route path={ROUTES.VERIFY_OTP} element={<VerifyOtpPage />} />
+      <Route path="/signin" element={<SignInPage />} />
+      <Route path='/signup' element={<SignUpPage />} />
       
       {/* Client Routes - Protected */}
       <Route

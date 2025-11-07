@@ -69,9 +69,16 @@ const Header = () => {
           </div>
         </div>
         {/* Đăng nhập */}
-        <div className="flex items-center gap-2 rounded-2xl bg-(--blue-light)  hover:cursor-pointer hover:bg-[#51A4F1] p-2">
+        <div
+          onClick={() => navigate("/login")}
+          className="flex items-center gap-2 rounded-2xl 
+                    bg-gradient-to-r from-[#3b82f6] to-[#2563eb] 
+                    px-4 py-2 text-white shadow-md transition-all duration-300 
+                    hover:-translate-y-[1px] hover:shadow-lg hover:brightness-110 
+                    active:scale-95 hover:cursor-pointer"
+        >
           <User fill="white" color="white" />
-          <div className="text-base font-normal text-white" onClick={() => navigate("/login")}>Đăng nhập</div>
+          <div className="text-base font-semibold">Đăng nhập</div>
         </div>
       </div>
     </div>
