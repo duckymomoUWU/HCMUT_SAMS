@@ -18,13 +18,15 @@ import {
   ResetPasswordDto,
   ResendOtpDto,
 } from './dto/auth.dto';
-import { GoogleAuthGuard } from './guards/google-auth.guard'; 
+import { GoogleAuthGuard } from './guards/google-auth.guard';
+import { Public } from '../../common/decorators/public.decorator';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   // ========== REGISTER ==========
+  @Public()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() registerDto: RegisterDto) {
@@ -32,6 +34,7 @@ export class AuthController {
   }
 
   // ========== VERIFY OTP ==========
+  @Public()
   @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
   async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
@@ -39,6 +42,7 @@ export class AuthController {
   }
 
   // ========== RESEND OTP ==========
+  @Public()
   @Post('resend-otp')
   @HttpCode(HttpStatus.OK)
   async resendOtp(@Body() resendOtpDto: ResendOtpDto) {
@@ -46,6 +50,7 @@ export class AuthController {
   }
 
   // ========== LOGIN ==========
+  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto) {
@@ -53,6 +58,7 @@ export class AuthController {
   }
 
   // ========== FORGOT PASSWORD ==========
+  @Public()
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
@@ -60,19 +66,28 @@ export class AuthController {
   }
 
   // ========== RESET PASSWORD ==========
+  @Public()
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto);
   }
-
+  // ========== REFRESH TOKEN ==========
+  @Public()
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refreshToken(@Body() body: { refreshToken: string }) {
+    return this.authService.refreshToken(body.refreshToken);
+  }
   // ========== GOOGLE OAUTH ==========
+  @Public()
   @Get('google')
   @UseGuards(GoogleAuthGuard)
   async googleAuth() {
     // Guard sẽ redirect đến Google login
   }
 
+  @Public()
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
   async googleAuthRedirect(@Req() req: any, @Res() res: any) {
@@ -81,7 +96,7 @@ export class AuthController {
 
       // Redirect về frontend với tokens
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-      
+
       const html = `
         <!DOCTYPE html>
         <html>
@@ -121,7 +136,7 @@ export class AuthController {
           </body>
         </html>
       `;
-      
+
       res.setHeader('Content-Type', 'text/html');
       res.send(html);
     } catch (error) {

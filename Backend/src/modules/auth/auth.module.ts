@@ -7,10 +7,11 @@ import { User, UserSchema } from './schemas/user.schema';
 import { EmailService } from './services/email.service';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { PassportModule } from '@nestjs/passport';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
-     PassportModule.register({ defaultStrategy: 'google' }),
+    PassportModule.register({ defaultStrategy: 'jwt' }),
     // Đăng ký User schema với Mongoose
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
 
@@ -18,12 +19,12 @@ import { PassportModule } from '@nestjs/passport';
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'your-secret-key',
       signOptions: {
-        expiresIn: '1h', // Hardcode để tránh type error
+        expiresIn: '15m', // Access token hết hạn sau 15 phút
       },
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, EmailService, GoogleStrategy], 
+  providers: [AuthService, EmailService, GoogleStrategy, JwtStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}

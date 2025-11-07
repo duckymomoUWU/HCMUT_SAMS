@@ -1,8 +1,14 @@
 import { Outlet } from "react-router-dom";
 import Header from "@/components/Admin/Header";
 import SlideBar from "@/components/Admin/SlideBar";
+import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 
 const AdminLayout = () => {
+  // Tự động logout sau 15 phút không hoạt động
+  // TESTING: 2 phút (2 * 60 * 1000)
+  // PRODUCTION: 15 phút (15 * 60 * 1000)
+  useInactivityLogout(2 * 60 * 1000);
+
   return (
     <div className="flex bg-[#f9fafb] min-h-screen">
       <div className="fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-20">

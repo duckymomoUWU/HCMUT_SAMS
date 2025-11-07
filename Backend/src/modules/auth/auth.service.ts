@@ -262,7 +262,57 @@ export class AuthService {
       email: user.email,
     };
   }
+  // ========== REFRESH TOKEN ==========
+  async refreshToken(refreshToken: string) {
+    try {
+      // 1. Verify refresh token
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+      });
 
+      // 2. Tìm user
+      const user = await this.userModel.findById(payload.sub);
+      if (!user || user.refreshToken !== refreshToken) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      // 3. Tạo access token mới
+      const newPayload = {
+        sub: user._id,
+        email: user.email,
+        role: user.role,
+      };
+
+      const accessToken = this.jwtService.sign(newPayload, {
+        expiresIn: '15m', // Access token hết hạn sau 15 phút
+      });
+
+      // 4. (Optional) Rotate refresh token - tạo refresh token mới
+      const newRefreshToken = this.jwtService.sign(newPayload, {
+        secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+        expiresIn: '7d', // Refresh token hết hạn sau 7 ngày
+      });
+
+      // Lưu refresh token mới vào database
+      user.refreshToken = newRefreshToken;
+      await user.save();
+
+      return {
+        success: true,
+        message: 'Token refreshed successfully',
+        accessToken,
+        refreshToken: newRefreshToken,
+        user: {
+          id: user._id,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role,
+        },
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+  }
   // ========== GOOGLE OAUTH LOGIN ==========
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async googleLogin(googleUser: any) {

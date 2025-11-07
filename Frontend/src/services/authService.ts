@@ -13,7 +13,7 @@ import type {
   ResendOtpRequest,
   ResendOtpResponse,
 } from "../types/auth.types";
-
+import { isTokenValid } from "../utils/jwt";
 class AuthService {
   // ========== REGISTER ==========
   async register(data: RegisterRequest): Promise<RegisterResponse> {
@@ -90,9 +90,47 @@ class AuthService {
 
   // ========== CHECK AUTH ==========
   isAuthenticated(): boolean {
-    return !!localStorage.getItem("accessToken");
-  }
+    const token = localStorage.getItem("accessToken");
 
+    // Check có token và token còn hợp lệ
+    return isTokenValid(token);
+  }
+  
+  // ========== REFRESH ACCESS TOKEN ==========
+  async refreshAccessToken(): Promise<string | null> {
+    try {
+      const refreshToken = localStorage.getItem("refreshToken");
+
+      if (!refreshToken) {
+        throw new Error("No refresh token available");
+      }
+
+      // TODO: Gọi API refresh token
+      // Backend cần có endpoint: POST /auth/refresh
+      const response = await api.post<AuthResponse>("/auth/refresh", {
+        refreshToken,
+      });
+
+      if (response.data.success) {
+        // Lưu access token mới
+        localStorage.setItem("accessToken", response.data.accessToken);
+
+        // Có thể backend cũng trả refresh token mới (rotate refresh token)
+        if (response.data.refreshToken) {
+          localStorage.setItem("refreshToken", response.data.refreshToken);
+        }
+
+        return response.data.accessToken;
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Refresh token failed:", error);
+      // Nếu refresh token cũng hết hạn → Logout
+      this.logout();
+      return null;
+    }
+  }
   // ========== GOOGLE OAUTH ==========
   googleLogin(): void {
     const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -132,8 +170,12 @@ class AuthService {
           popup.close();
         }
 
-        // Redirect to dashboard
-        window.location.href = "/dashboard";
+        // Redirect to dashboard theo role
+        if (user && user.role === 'admin') {
+          window.location.href = "/admin";
+        } else {
+          window.location.href = "/client";
+        }
       }
     };
 

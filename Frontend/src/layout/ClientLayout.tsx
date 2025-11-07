@@ -2,28 +2,25 @@ import { Outlet } from "react-router-dom";
 
 import Header from "@/components/Client/Header";
 import SlideBar from "@/components/Client/SlideBar";
+import { useInactivityLogout } from '../hooks/useInactivityLogout';
 
 const ClientLayout = () => {
+  // Tự động logout sau 30 giây không hoạt động
+  useInactivityLogout(30 * 1000);
+
   return (
-    <div className="flex bg-[#f9fafb] min-h-screen">
+    <div className="flex min-h-screen bg-[#f9fafb]">
       {/* Sidebar cố định bên trái */}
-      <div className="fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-20">
+      <div className="fixed top-0 left-0 z-20 h-full w-64 border-r border-gray-200 bg-white">
         <SlideBar />
       </div>
 
       {/* Nội dung chính */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex flex-1 flex-col">
         {/* Header cố định */}
         <Header />
 
-        <main
-          className="
-            flex-1 ml-64 p-6 
-            pt-20
-            overflow-y-auto
-            [scrollbar-gutter:stable]
-          "
-        >
+        <main className="ml-64 flex-1 overflow-y-auto p-6 pt-20 [scrollbar-gutter:stable]">
           <Outlet />
         </main>
       </div>
@@ -32,5 +29,3 @@ const ClientLayout = () => {
 };
 
 export default ClientLayout;
-
- 

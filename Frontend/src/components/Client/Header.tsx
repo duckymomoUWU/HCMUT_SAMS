@@ -1,14 +1,24 @@
 import { useState } from "react";
 import { Bell, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import authService from "@/services/authService";
 import defaultAvatar from "@/assets/hcmut_logo.png";
-
-const userAvatar = "";
-const userName = "Bro";
 
 const Header = () => {
   const navigate = useNavigate();
   const [showConfirmLogout, setShowConfirmLogout] = useState(false);
+  
+  // Lấy user info từ authService
+  const user = authService.getCurrentUser();
+  const userName = user?.fullName || "Người dùng";
+  const userAvatar = user?.avatarUrl || "";
+
+  // Logout function
+  const handleLogout = () => {
+    authService.logout(); // Xóa token và user data
+    setShowConfirmLogout(false);
+    navigate("/login"); // Redirect về login
+  };
 
   return (
     <header className="fixed top-0 right-0 left-64 z-50 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3 shadow-sm">
@@ -69,10 +79,7 @@ const Header = () => {
                 Hủy
               </button>
               <button
-                onClick={() => {
-                  setShowConfirmLogout(false);
-                  navigate("/");
-                }}
+                onClick={handleLogout}
                 className="rounded-md bg-red-600 px-4 py-2 font-medium text-white hover:bg-red-700"
               >
                 Đăng xuất

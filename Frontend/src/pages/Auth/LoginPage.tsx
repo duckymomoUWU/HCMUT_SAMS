@@ -58,7 +58,22 @@ const LoginPage: React.FC = () => {
       const response = await authService.login(formData);
       
       if (response.success) {
-        navigate('/dashboard');
+        // Lấy user info để redirect đúng dashboard theo role
+        const user = authService.getCurrentUser();
+        
+        if (user) {
+          if (user.role === 'admin') {
+            navigate('/admin');
+          } else if (user.role === 'student') {
+            navigate('/client');
+          } else {
+            // Fallback cho role khác (nếu có thêm trong tương lai)
+            navigate('/client');
+          }
+        } else {
+          // Fallback nếu không lấy được user
+          navigate('/client');
+        }
       }
     } catch (err) {
       const axiosError = err as AxiosError<ErrorResponse>;

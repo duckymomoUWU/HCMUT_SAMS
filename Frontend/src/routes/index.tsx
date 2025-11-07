@@ -42,11 +42,11 @@ export const AppRoutes = () => {
       <Route path="/signin" element={<SignInPage />} />
       <Route path='/signup' element={<SignUpPage />} />
       
-      {/* Client Routes - Protected */}
+      {/* Client Routes - Protected (Student Only) */}
       <Route
         path="/client"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole={['student']}>
             <ClientLayout />
           </ProtectedRoute>
         }
@@ -62,9 +62,9 @@ export const AppRoutes = () => {
       <Route
         path={ROUTES.ADMIN}
         element={
-          // <ProtectedRoute requiredRole={['admin']}>
+          <ProtectedRoute requiredRole={['admin']}>
             <AdminLayout />
-          // </ProtectedRoute>
+          </ProtectedRoute>
         }
       >
         <Route index element={<AdminDashboard />} />
