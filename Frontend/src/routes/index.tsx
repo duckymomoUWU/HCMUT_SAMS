@@ -1,16 +1,11 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { ROUTES } from "../constants/routes";
-import { ProtectedRoute } from "./ProtectedRoute";
-
-// Layouts
-import ClientLayout from "../layout/ClientLayout";
-import AdminLayout from "../layout/AdminLayout";
+import { ROUTES } from "./routes";
 
 // Public Pages
-import MainPage from "../pages/HomePage/MainPage";
+import MainPage from "@/pages/Home/MainPage";
 import LoginPage from "../pages/Auth/LoginPage";
 import RegisterPage from "../pages/Auth/RegisterPage";
-import VerifyOtpPage from "../pages/Auth/VerifyOtpPage";
+import VerifyOtpPage from "@/pages/Auth/VerifyOtpPage";
 
 // Client Pages
 import ClientDashboard from "../pages/Client/Dashboard";
@@ -27,6 +22,13 @@ import DevicesManagement from "../pages/Admin/DevicesManagement";
 import OrdersManagement from "../pages/Admin/OrdersManagement";
 import TimerManagement from "../pages/Admin/TimerManagement";
 
+// Layout
+import AdminLayout from "@/layouts/AdminLayout";
+import ClientLayout from "@/layouts/ClientLayout";
+
+// Common
+import { ProtectedRoute } from "./ProtectedRoute";
+
 export const AppRoutes = () => {
   return (
     <Routes>
@@ -36,11 +38,11 @@ export const AppRoutes = () => {
       <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
       <Route path={ROUTES.VERIFY_OTP} element={<VerifyOtpPage />} />
 
-      {/* Client Routes - Protected */}
+      {/* Client Routes */}
       <Route
-        path="/client"
+        path={ROUTES.CLIENT}
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole={["student"]}>
             <ClientLayout />
           </ProtectedRoute>
         }
@@ -52,13 +54,13 @@ export const AppRoutes = () => {
         <Route path="equipment-rental" element={<EquipmentRental />} />
       </Route>
 
-      {/* Admin Routes - Protected with Admin Role */}
+      {/* Admin Routes */}
       <Route
         path={ROUTES.ADMIN}
         element={
-          // <ProtectedRoute requiredRole={['admin']}>
+          <ProtectedRoute requiredRole={["admin"]}>
             <AdminLayout />
-          // </ProtectedRoute>
+          </ProtectedRoute>
         }
       >
         <Route index element={<AdminDashboard />} />
@@ -68,17 +70,6 @@ export const AppRoutes = () => {
         <Route path="orders-management" element={<OrdersManagement />} />
         <Route path="timer-management" element={<TimerManagement />} />
       </Route>
-
-      {/* Legacy Routes - Redirect for backward compatibility */}
-      <Route path="/sign-in" element={<Navigate to={ROUTES.LOGIN} replace />} />
-      <Route
-        path="/sign-up"
-        element={<Navigate to={ROUTES.REGISTER} replace />}
-      />
-      <Route
-        path={ROUTES.DASHBOARD}
-        element={<Navigate to="/client" replace />}
-      />
 
       {/* 404 Not Found */}
       <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />

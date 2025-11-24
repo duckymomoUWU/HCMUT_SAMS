@@ -1,15 +1,15 @@
-import { Navigate, useLocation } from 'react-router-dom';
-import authService from '../services/authService';
-import { ROUTES } from '../constants/routes';
+import { Navigate, useLocation } from "react-router-dom";
+import { authService } from "@/services";
+import { ROUTES } from "./routes";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: string[];
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  children, 
-  requiredRole 
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
+  requiredRole,
 }) => {
   const location = useLocation();
   const isAuthenticated = authService.isAuthenticated();
@@ -23,7 +23,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Check if user has required role
   if (requiredRole && user && !requiredRole.includes(user.role)) {
     // Redirect to client dashboard if user doesn't have required role
-    return <Navigate to="/client" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

@@ -1,5 +1,4 @@
 // ========== AUTH TYPES ==========
-
 export interface User {
   id: string;
   email: string;
@@ -22,7 +21,6 @@ export interface AuthResponse {
 }
 
 // ========== REQUEST DTOs ==========
-
 export interface RegisterRequest {
   fullName: string;
   email: string;

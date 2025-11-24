@@ -1,8 +1,8 @@
-import Header from "@/components/MainPage/Header";
-import BodyFirst from "@/components/MainPage/BodyFirst";
-import BodySecond from "@/components/MainPage/BodySecond";
-import BodyThird from "@/components/MainPage/BodyThird";
-import Footer from "@/components/MainPage/Footer";
+import Header from "@/components/Main/Header";
+import BodyFirst from "@/components/Main/BodyFirst";
+import BodySecond from "@/components/Main/BodySecond";
+import BodyThird from "@/components/Main/BodyThird";
+import Footer from "@/components/Main/Footer";
 
 const MainPage = () => {
   return (

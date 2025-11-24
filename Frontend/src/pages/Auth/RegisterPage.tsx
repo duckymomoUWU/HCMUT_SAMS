@@ -5,8 +5,8 @@ import { useNavigate } from "react-router-dom";
 import GoogleLoginButton from "@/components/common/GoogleLoginButton";
 import { validateHCMUTEmail, validatePassword } from "@/utils/validation";
 import { AxiosError } from "axios";
-import type { ErrorResponse } from "@/types/auth.types";
-import authService from "@/services/authService";
+import type { ErrorResponse } from "@/types";
+import { authService } from "@/services";
 
 interface RegisterFormData {
   fullName: string;
@@ -245,7 +245,7 @@ const RegisterPage = () => {
         <div className="mt-1 flex items-center justify-center gap-1 text-sm">
           <span>Đã có tài khoản</span>
           <div
-            onClick={() => navigate("/sign-in")}
+            onClick={() => navigate("/login")}
             className="cursor-pointer rounded-sm p-1 font-medium text-[#51A4F1] underline hover:text-[#63B6FF]"
           >
             Đăng nhập

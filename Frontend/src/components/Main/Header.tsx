@@ -23,10 +23,10 @@ const NavLink = ({
     offset={offset}
     className="group relative cursor-pointer text-black transition-colors duration-300"
   >
-    <span className="relative transition-colors duration-300 group-hover:text-[var(--blue-light)]">
+    <span className="relative transition-colors duration-300 group-hover:text-(--blue-light)">
       {label}
     </span>
-    <span className="absolute bottom-0 left-0 h-[2px] w-0 bg-[var(--blue-light)] transition-all duration-300 group-hover:w-full"></span>
+    <span className="absolute bottom-0 left-0 h-0.5 w-0 bg-(--blue-light) transition-all duration-300 group-hover:w-full"></span>
   </Link>
 );
 
@@ -71,11 +71,7 @@ const Header = () => {
         {/* Đăng nhập */}
         <div
           onClick={() => navigate("/login")}
-          className="flex items-center gap-2 rounded-2xl 
-                    bg-gradient-to-r from-[#3b82f6] to-[#2563eb] 
-                    px-4 py-2 text-white shadow-md transition-all duration-300 
-                    hover:-translate-y-[1px] hover:shadow-lg hover:brightness-110 
-                    active:scale-95 hover:cursor-pointer"
+          className="flex items-center gap-2 rounded-2xl bg-linear-to-r from-[#3b82f6] to-[#2563eb] px-4 py-2 text-white shadow-md transition-all duration-300 hover:-translate-y-px hover:cursor-pointer hover:shadow-lg hover:brightness-110 active:scale-95"
         >
           <User fill="white" color="white" />
           <div className="text-base font-semibold">Đăng nhập</div>

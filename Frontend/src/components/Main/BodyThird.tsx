@@ -76,9 +76,7 @@ const BodyThird = () => {
         {Info.map((item, index) => {
           return (
             <div
-              className="flex w-[16%] flex-col items-center justify-center gap-2 
-                        rounded-2xl bg-white p-6 shadow-xl transition-all duration-300 
-                        hover:-translate-y-2 hover:shadow-2xl hover:cursor-pointer"
+              className="flex w-[16%] flex-col items-center justify-center gap-2 rounded-2xl bg-white p-6 shadow-xl transition-all duration-300 hover:-translate-y-2 hover:cursor-pointer hover:shadow-2xl"
               key={index}
             >
               <div className="rounded-lg bg-(--blue-background) p-4">
@@ -100,7 +98,7 @@ const BodyThird = () => {
       <div className="flex w-full items-center justify-center gap-8">
         {/* Left */}
         <div className="flex w-[40%] flex-col gap-4">
-          <div className="w-fit self-start rounded-md bg-[var(--blue-dark-background)] px-3 py-1 text-lg font-semibold text-white hover:shadow-2xl">
+          <div className="w-fit self-start rounded-md bg-(--blue-dark-background) px-3 py-1 text-lg font-semibold text-white hover:shadow-2xl">
             Sứ mệnh
           </div>
           <div className="text-2xl font-bold">
@@ -116,9 +114,12 @@ const BodyThird = () => {
             không ngừng nâng cao chất lượng dịch vụ để mang đến trải nghiệm thể
             thao tốt nhất cho cộng đồng.
           </div>
-          <div className="flex w-fit items-center justify-center gap-2 rounded-2xl bg-(--blue-dark-background) p-4 shadow-2xl hover:cursor-pointer hover:bg-[#0f4ad1]" onClick={() => navigate("/login")}>
+          <div
+            className="flex w-fit items-center justify-center gap-2 rounded-2xl bg-(--blue-dark-background) p-4 shadow-2xl hover:cursor-pointer hover:bg-[#0f4ad1]"
+            onClick={() => navigate("/login")}
+          >
             <User width={20} height={20} color="white" />
-            <div className="text-sm font-normal text-white" >
+            <div className="text-sm font-normal text-white">
               Đăng nhập để trải nghiệm
             </div>
           </div>
@@ -130,9 +131,7 @@ const BodyThird = () => {
             {Info2.map((item, index) => {
               return (
                 <div
-                  className="mb-4 flex h-[100px] items-center gap-4 rounded-2xl bg-white p-4 shadow-2xl 
-                            transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_8px_20px_rgba(0,0,0,0.15)] 
-                            hover:cursor-pointer"
+                  className="mb-4 flex h-[100px] items-center gap-4 rounded-2xl bg-white p-4 shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:cursor-pointer hover:shadow-[0_8px_20px_rgba(0,0,0,0.15)]"
                   key={index}
                 >
                   <div className="flex h-[80%] w-fit items-center justify-center rounded-lg bg-(--blue-background) p-2">

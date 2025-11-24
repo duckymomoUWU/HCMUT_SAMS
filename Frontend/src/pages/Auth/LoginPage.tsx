@@ -3,10 +3,10 @@ import { Eye, EyeOff } from "lucide-react";
 import Logo from "@/assets/hcmut_logo.png";
 import { useNavigate, Link } from "react-router-dom";
 import GoogleLoginButton from "@/components/common/GoogleLoginButton";
-import type { ErrorResponse } from "@/types/auth.types";
+import type { ErrorResponse } from "@/types";
 import { validateHCMUTEmail } from "@/utils/validation";
-import { authService } from "@/services";
 import { AxiosError } from "axios";
+import { authService } from "@/services";
 
 interface LoginFormData {
   email: string;
@@ -52,8 +52,11 @@ const LoginPage: React.FC = () => {
     try {
       const response = await authService.login(formData);
 
+      const userInfo = response.user;
+      const role = userInfo ? userInfo.role : null;
+
       if (response.success) {
-        navigate("/dashboard");
+        navigate(`${role === "admin" ? "/admin" : "/client"}`);
       }
     } catch (err) {
       const axiosError = err as AxiosError<ErrorResponse>;
@@ -172,7 +175,7 @@ const LoginPage: React.FC = () => {
         <div className="mt-2 flex items-center justify-center gap-1 text-sm">
           <span>Tạo tài khoản mới </span>
           <div
-            onClick={() => navigate("/sign-up")}
+            onClick={() => navigate("/register")}
             className="cursor-pointer rounded-sm p-1 font-medium text-[#51A4F1] underline hover:text-[#63B6FF]"
           >
             Đăng ký

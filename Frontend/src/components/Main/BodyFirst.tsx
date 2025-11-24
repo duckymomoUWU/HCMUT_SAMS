@@ -49,7 +49,7 @@ const BodyFirst = () => {
   }, [isFlag]);
 
   return (
-    <div className="flex bg-linear-to-bl from-[#EEEEEE] to-[#51A4F1] p-16 h-screen">
+    <div className="flex h-screen bg-linear-to-bl from-[#EEEEEE] to-[#51A4F1] p-16">
       {/* Left */}
       <div className="w-1/2">
         <div className="mb-4 text-(--blue-med)">
@@ -67,13 +67,20 @@ const BodyFirst = () => {
         {/* Button */}
         <div className="my-4 flex gap-8">
           {/* Login */}
-          <div className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] hover:shadow-lg hover:brightness-110 active:scale-95 cursor-pointer p-5 hover:-translate-y-[1px]">
+          <div className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-[#2563eb] to-[#1d4ed8] p-5 hover:-translate-y-px hover:shadow-lg hover:brightness-110 active:scale-95">
             <UserPlus color="white" />
-            <div className="text-white" onClick={() => navigate("/login")}>Đăng nhập vào SAMS</div>
+            <div className="text-white" onClick={() => navigate("/login")}>
+              Đăng nhập vào SAMS
+            </div>
           </div>
           {/* Map */}
-          <Link to="co-so-vat-chat" smooth={true} duration={500} offset={-42}className="flex items-center justify-center gap-2 rounded-2xl bg-white p-5 hover:-translate-y-[1px] hover:shadow-md 
-             hover:brightness-95 active:scale-95 cursor-pointer">
+          <Link
+            to="co-so-vat-chat"
+            smooth={true}
+            duration={500}
+            offset={-42}
+            className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-white p-5 hover:-translate-y-px hover:shadow-md hover:brightness-95 active:scale-95"
+          >
             <MapPin color="var(--blue-light)" />
             <div className="text-(--blue-light)">Khám phá cơ sở vật chất</div>
           </Link>
@@ -113,7 +120,7 @@ const BodyFirst = () => {
         </div>
       </div>
       {/* Right */}
-      <div className="relative flex w-1/2  justify-center">
+      <div className="relative flex w-1/2 justify-center">
         <div
           className="scrollbar-hide flex h-[95%] w-[80%] snap-x snap-mandatory overflow-x-hidden scroll-smooth rounded-2xl shadow-2xl"
           ref={scrollRef}

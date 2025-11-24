@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { authService } from '../services/authService';
-import type { User } from '../types/auth.types';
+import { useState, useEffect } from "react";
+import { authService } from "@/services";
+import type { User } from "@/types";
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -10,7 +10,7 @@ export const useAuth = () => {
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
     const authenticated = authService.isAuthenticated();
-    
+
     setUser(currentUser);
     setIsAuthenticated(authenticated);
     setIsLoading(false);

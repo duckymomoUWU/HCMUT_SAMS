@@ -13,7 +13,7 @@ const BodySecond = () => {
       {/* Body */}
       <div className="relative mb-12 flex h-[520px] w-[58%] rounded-2xl hover:shadow-2xl">
         {/* Gradient */}
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <div className="absolute inset-0 rounded-2xl bg-linear-to-t from-black/60 via-transparent to-transparent" />
 
         {/* Picture */}
         <img

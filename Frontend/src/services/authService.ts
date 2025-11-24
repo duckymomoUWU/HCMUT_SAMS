@@ -1,18 +1,19 @@
-import api from "./api";
+import api from "@/libs/api";
+
 import type {
-  RegisterRequest,
-  RegisterResponse,
-  VerifyOtpRequest,
-  VerifyOtpResponse,
-  LoginRequest,
   AuthResponse,
   ForgotPasswordRequest,
   ForgotPasswordResponse,
-  ResetPasswordRequest,
-  ResetPasswordResponse,
+  LoginRequest,
+  RegisterRequest,
+  RegisterResponse,
   ResendOtpRequest,
   ResendOtpResponse,
-} from "../types/auth.types";
+  ResetPasswordRequest,
+  ResetPasswordResponse,
+  VerifyOtpRequest,
+  VerifyOtpResponse,
+} from "@/types";
 
 class AuthService {
   // ========== REGISTER ==========
@@ -132,8 +133,11 @@ class AuthService {
           popup.close();
         }
 
+        const userInfo = localStorage.getItem("user");
+        const role = userInfo ? JSON.parse(userInfo).role : null;
+
         // Redirect to dashboard
-        window.location.href = "/dashboard";
+        window.location.href = `${role === "admin" ? "/admin" : "/client"}`;
       }
     };
 
