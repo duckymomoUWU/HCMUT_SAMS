@@ -5,9 +5,7 @@ import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 
 const AdminLayout = () => {
   // Tự động logout sau 15 phút không hoạt động
-  // TESTING: 2 phút (2 * 60 * 1000)
-  // PRODUCTION: 15 phút (15 * 60 * 1000)
-  useInactivityLogout(2 * 60 * 1000);
+  useInactivityLogout(15 * 60 * 1000);
 
   return (
     <div className="flex bg-[#f9fafb] min-h-screen">

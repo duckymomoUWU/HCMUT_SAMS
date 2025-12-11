@@ -31,9 +31,9 @@ async function bootstrap() {
     new RolesGuard(reflector), // 2. Kiểm tra role sau
   );
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 5000);
   console.log(
-    `Application is running on: http://localhost:${process.env.PORT ?? 3000}`,
+    `Application is running on: http://localhost:${process.env.PORT ?? 5000}`,
   );
 }
 void bootstrap();

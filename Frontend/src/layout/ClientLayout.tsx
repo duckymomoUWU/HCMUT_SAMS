@@ -5,8 +5,8 @@ import SlideBar from "@/components/Client/SlideBar";
 import { useInactivityLogout } from '../hooks/useInactivityLogout';
 
 const ClientLayout = () => {
-  // Tự động logout sau 30 giây không hoạt động
-  useInactivityLogout(30 * 1000);
+  // Tự động logout sau 15 phút không hoạt động
+  useInactivityLogout(15 * 60 * 1000);
 
   return (
     <div className="flex min-h-screen bg-[#f9fafb]">
