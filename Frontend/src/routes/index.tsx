@@ -46,9 +46,9 @@ export const AppRoutes = () => {
       <Route
         path="/client"
         element={
-          <ProtectedRoute requiredRole={['student']}>
+          // <ProtectedRoute requiredRole={['student']}>
             <ClientLayout />
-          </ProtectedRoute>
+          // </ProtectedRoute>
         }
       >
         <Route index element={<ClientDashboard />} />
