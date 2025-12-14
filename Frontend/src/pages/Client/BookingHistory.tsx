@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Search,
   Calendar,
@@ -10,6 +10,9 @@ import {
   AlertCircle,
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
+import equipmentRentalService, {
+  type EquipmentRental,
+} from "@/services/equipmentRentalService";
 
 const BookingHistory = () => {
   const [activeTab, setActiveTab] = useState<"upcoming" | "history">(
@@ -17,9 +20,28 @@ const BookingHistory = () => {
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("Tất cả");
+  const [rentals, setRentals] = useState<EquipmentRental[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRentals = async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        if (user._id) {
+          const data = await equipmentRentalService.getUserRentals(user._id);
+          setRentals(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch rentals:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRentals();
+  }, []);
 
   // Mock data - dữ liệu mẫu
-  const bookings = [
+  const mockBookings = [
     {
       id: 1,
       type: "booking",
@@ -62,6 +84,29 @@ const BookingHistory = () => {
     },
   ];
 
+  const rentalBookings = rentals.map((rental) => ({
+    id: rental._id,
+    type: "equipment-rental",
+    name: `Thuê thiết bị - ${rental.equipmentId}`, // Would need equipment name
+    date: rental.rentalDate,
+    time: `${rental.duration} giờ`,
+    price: rental.totalPrice,
+    status:
+      rental.status === "renting"
+        ? "Đang thuê"
+        : rental.status === "completed"
+          ? "Đã trả"
+          : "Quá hạn",
+    statusColor:
+      rental.status === "renting"
+        ? "blue"
+        : rental.status === "completed"
+          ? "green"
+          : "red",
+  }));
+
+  const bookings = [...mockBookings, ...rentalBookings];
+
   const statusOptions = [
     "Tất cả",
     "Chờ duyệt",
@@ -72,18 +117,24 @@ const BookingHistory = () => {
     "Hoàn thành",
     "Đã hủy",
     "Hết hạn",
+    "Đang thuê",
+    "Đã trả",
+    "Quá hạn",
   ];
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "Đã duyệt":
       case "Đã thanh toán":
+      case "Đã trả":
         return <CheckCircle2 className="h-4 w-4" />;
       case "Chờ duyệt":
       case "Chờ thanh toán":
+      case "Đang thuê":
         return <Clock className="h-4 w-4" />;
       case "Đã hủy":
       case "Hết hạn":
+      case "Quá hạn":
         return <XCircle className="h-4 w-4" />;
       case "Hoàn thành":
         return <CheckCircle2 className="h-4 w-4" />;
