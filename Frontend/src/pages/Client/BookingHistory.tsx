@@ -25,7 +25,7 @@ const BookingHistory = () => {
     [key: string]: Equipment;
   }>({});
   const [loading, setLoading] = useState(true);
-
+  const [selectedRental, setSelectedRental] = useState<any>(null);
   useEffect(() => {
     const fetchRentals = async () => {
       try {
@@ -151,10 +151,13 @@ const BookingHistory = () => {
       id: rental._id,
       type: "equipment-rental",
       name: `Thuê thiết bị - ${equipmentName}`,
+      equipmentName,
       date: formattedDate,
       rawDate: dateStr,
       time: timeRange,
       price: rental.totalPrice,
+      quantity: rental.quantity,
+      duration: rental.duration,
       status:
         rental.status === "renting"
           ? "Đang thuê"
@@ -167,6 +170,9 @@ const BookingHistory = () => {
           : rental.status === "completed"
             ? "green"
             : "red",
+      rentalStatus: rental.status,
+      equipment,
+      rental,
     };
   });
 
@@ -367,7 +373,10 @@ const BookingHistory = () => {
                       Đặt lại
                     </button>
                   )}
-                  <button className="rounded-md border px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-50">
+                  <button
+                    onClick={() => setSelectedRental(booking)}
+                    className="rounded-md border px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-50"
+                  >
                     Xem chi tiết
                   </button>
                 </div>
@@ -376,6 +385,147 @@ const BookingHistory = () => {
           ))
         )}
       </div>
+
+      {/* Xem chi tiết lượt thuê */}
+      {selectedRental && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-lg">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Chi tiết đơn thuê
+              </h2>
+              <button
+                onClick={() => setSelectedRental(null)}
+                className="text-gray-500 transition hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Basic Info */}
+              <div className="rounded-lg bg-gray-50 p-4">
+                <h3 className="mb-4 font-semibold text-gray-900">
+                  Thông tin cơ bản
+                </h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <p className="text-sm text-gray-600">Thiết bị</p>
+                    <p className="font-medium text-gray-900">
+                      {selectedRental.equipmentName}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Trạng thái</p>
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium ${getStatusColorClass(
+                        selectedRental.statusColor,
+                      )}`}
+                    >
+                      {getStatusIcon(selectedRental.status)}
+                      {selectedRental.status}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Số lượng</p>
+                    <p className="font-medium text-gray-900">
+                      {selectedRental.quantity}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Thời lượng thuê</p>
+                    <p className="font-medium text-gray-900">
+                      {selectedRental.duration} giờ
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Schedule Info */}
+              <div className="rounded-lg bg-gray-50 p-4">
+                <h3 className="mb-4 font-semibold text-gray-900">Lịch thuê</h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <p className="text-sm text-gray-600">Ngày thuê</p>
+                    <p className="font-medium text-gray-900">
+                      {selectedRental.date}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Thời gian</p>
+                    <p className="font-medium text-gray-900">
+                      {selectedRental.time}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Equipment Details */}
+              {selectedRental.equipment && (
+                <div className="rounded-lg bg-gray-50 p-4">
+                  <h3 className="mb-4 font-semibold text-gray-900">
+                    Chi tiết thiết bị
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <p className="text-sm text-gray-600">Loại thiết bị</p>
+                      <p className="font-medium text-gray-900">
+                        {(selectedRental.equipment as any).type || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Giá/giờ</p>
+                      <p className="font-medium text-gray-900">
+                        {(
+                          (selectedRental.equipment as any).pricePerHour || 0
+                        ).toLocaleString("vi-VN")}{" "}
+                        đ
+                      </p>
+                    </div>
+                  </div>
+                  {(selectedRental.equipment as any).description && (
+                    <div className="mt-4">
+                      <p className="text-sm text-gray-600">Mô tả</p>
+                      <p className="text-gray-900">
+                        {(selectedRental.equipment as any).description}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Price Info */}
+              <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
+                <h3 className="mb-4 font-semibold text-gray-900">Tổng cộng</h3>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-gray-600">Thành tiền:</span>
+                  <span className="text-3xl font-bold text-blue-600">
+                    {(selectedRental.price || 0).toLocaleString("vi-VN")} đ
+                  </span>
+                </div>
+              </div>
+
+              {/* Rental ID */}
+              <div className="rounded-lg bg-gray-50 p-4">
+                <p className="text-sm text-gray-600">Mã đơn thuê</p>
+                <p className="font-mono text-sm font-medium text-gray-900">
+                  {selectedRental.id}
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedRental(null)}
+                  className="flex-1 rounded-md bg-gray-200 px-4 py-2 font-medium text-gray-900 transition hover:bg-gray-300"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
