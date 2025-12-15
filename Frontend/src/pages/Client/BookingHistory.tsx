@@ -124,12 +124,18 @@ const BookingHistory = () => {
 
   const rentalBookings = rentals.map((rental) => {
     const equipment = equipmentMap[rental.equipmentId];
-    const equipmentName = equipment
-      ? equipment.name
-      : `Thiết bị (${rental.equipmentId})`;
+    // Extract equipment name - handle if equipment is object
+    let equipmentName = "Thiết bị";
+    if (equipment && typeof equipment === "object" && "name" in equipment) {
+      equipmentName = (equipment as any).name;
+    }
 
-    // Format date
-    const rentalDateTime = new Date(rental.rentalDate);
+    // Format date - properly parse ISO date
+    const dateStr =
+      typeof rental.rentalDate === "string"
+        ? rental.rentalDate.split("T")[0]
+        : rental.rentalDate;
+    const rentalDateTime = new Date(dateStr + "T00:00:00");
     const formattedDate = rentalDateTime.toLocaleDateString("vi-VN", {
       year: "numeric",
       month: "2-digit",
@@ -146,6 +152,7 @@ const BookingHistory = () => {
       type: "equipment-rental",
       name: `Thuê thiết bị - ${equipmentName}`,
       date: formattedDate,
+      rawDate: dateStr,
       time: timeRange,
       price: rental.totalPrice,
       status:
@@ -163,9 +170,32 @@ const BookingHistory = () => {
     };
   });
 
-  const bookings = [...mockBookings, ...rentalBookings];
+  // Separate upcoming and history bookings
+  const today = new Date().toISOString().split("T")[0];
+  const upcomingBookings = rentalBookings.filter(
+    (booking) => booking.rawDate && booking.rawDate >= today,
+  );
+  const historyBookings = [
+    ...mockBookings,
+    ...rentalBookings.filter(
+      (booking) => !booking.rawDate || booking.rawDate < today,
+    ),
+  ];
 
-  console.log("All bookings to display:", bookings);
+  const filteredBookings =
+    activeTab === "upcoming" ? upcomingBookings : historyBookings;
+
+  const filteredByStatus = filteredBookings.filter(
+    (booking) =>
+      (filterStatus === "Tất cả" || booking.status === filterStatus) &&
+      (booking.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.date.includes(searchTerm)),
+  );
+
+  console.log("Bookings:", {
+    upcoming: upcomingBookings,
+    history: historyBookings,
+  });
 
   const statusOptions = [
     "Tất cả",
@@ -214,13 +244,6 @@ const BookingHistory = () => {
     return colors[statusColor as keyof typeof colors] || colors.gray;
   };
 
-  const filteredBookings = bookings.filter(
-    (booking) =>
-      (filterStatus === "Tất cả" || booking.status === filterStatus) &&
-      (booking.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.date.includes(searchTerm)),
-  );
-
   return (
     <div className="flex flex-col gap-8 pt-4">
       <PageHeader
@@ -238,7 +261,7 @@ const BookingHistory = () => {
               : "text-gray-600 hover:text-gray-900"
           }`}
         >
-          Sắp tới (0)
+          Sắp tới ({upcomingBookings.length})
         </button>
         <button
           onClick={() => setActiveTab("history")}
@@ -248,7 +271,7 @@ const BookingHistory = () => {
               : "text-gray-600 hover:text-gray-900"
           }`}
         >
-          Lịch sử (0)
+          Lịch sử ({historyBookings.length})
         </button>
       </div>
 
@@ -281,83 +304,78 @@ const BookingHistory = () => {
       </div>
 
       {/* Xem lịch sử thuê và lịch thuê sắp tới */}
-      {activeTab === "upcoming" ? (
-        <div className="rounded-xl border bg-white p-8 text-center shadow-sm">
-          <Calendar className="mx-auto mb-4 h-16 w-16 text-gray-300" />
-          <p className="text-lg text-gray-600">Không có booking nào</p>
-          <p className="mt-2 text-sm text-gray-500">
-            Bạn chưa có lịch đặt sân hoặc thuê thiết bị nào sắp tới
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {filteredBookings.length === 0 ? (
-            <div className="rounded-xl border bg-white p-8 text-center shadow-sm">
-              <Calendar className="mx-auto mb-4 h-16 w-16 text-gray-300" />
-              <p className="text-lg text-gray-600">Không tìm thấy kết quả</p>
-            </div>
-          ) : (
-            filteredBookings.map((booking) => (
-              <div
-                key={booking.id}
-                className="rounded-xl border bg-white p-5 shadow-sm transition hover:shadow-md"
-              >
-                <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-                  <div className="flex-1">
-                    <div className="mb-2 flex items-center gap-3">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {booking.name}
-                      </h3>
-                      <span
-                        className={`flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium ${getStatusColorClass(
-                          booking.statusColor,
-                        )}`}
-                      >
-                        {getStatusIcon(booking.status)}
-                        {booking.status}
+      <div className="space-y-4">
+        {filteredByStatus.length === 0 ? (
+          <div className="rounded-xl border bg-white p-8 text-center shadow-sm">
+            <Calendar className="mx-auto mb-4 h-16 w-16 text-gray-300" />
+            <p className="text-lg text-gray-600">Không có booking nào</p>
+            <p className="mt-2 text-sm text-gray-500">
+              {activeTab === "upcoming"
+                ? "Bạn chưa có lịch đặt sân hoặc thuê thiết bị nào sắp tới"
+                : "Bạn chưa có lịch sử đặt sân hoặc thuê thiết bị nào"}
+            </p>
+          </div>
+        ) : (
+          filteredByStatus.map((booking) => (
+            <div
+              key={booking.id}
+              className="rounded-xl border bg-white p-5 shadow-sm transition hover:shadow-md"
+            >
+              <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+                <div className="flex-1">
+                  <div className="mb-2 flex items-center gap-3">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {booking.name}
+                    </h3>
+                    <span
+                      className={`flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium ${getStatusColorClass(
+                        booking.statusColor,
+                      )}`}
+                    >
+                      {getStatusIcon(booking.status)}
+                      {booking.status}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-4 text-sm text-gray-700">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <span>{booking.date}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-gray-500" />
+                      <span>{booking.time}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-gray-500" />
+                      <span className="font-medium text-gray-900">
+                        {booking.price.toLocaleString("vi-VN")} đ
                       </span>
                     </div>
-
-                    <div className="flex flex-wrap gap-4 text-sm text-gray-700">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-gray-500" />
-                        <span>{booking.date}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-gray-500" />
-                        <span>{booking.time}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="h-4 w-4 text-gray-500" />
-                        <span className="font-medium text-gray-900">
-                          {booking.price.toLocaleString("vi-VN")} đ
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    {booking.status === "Đã duyệt" && (
-                      <button className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700">
-                        Thanh toán
-                      </button>
-                    )}
-                    {booking.status === "Hoàn thành" && (
-                      <button className="flex items-center gap-2 rounded-md border px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-50">
-                        <RefreshCw className="h-4 w-4" />
-                        Đặt lại
-                      </button>
-                    )}
-                    <button className="rounded-md border px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-50">
-                      Xem chi tiết
-                    </button>
                   </div>
                 </div>
+
+                <div className="flex gap-2">
+                  {booking.status === "Đã duyệt" && (
+                    <button className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700">
+                      Thanh toán
+                    </button>
+                  )}
+                  {booking.status === "Hoàn thành" && (
+                    <button className="flex items-center gap-2 rounded-md border px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-50">
+                      <RefreshCw className="h-4 w-4" />
+                      Đặt lại
+                    </button>
+                  )}
+                  <button className="rounded-md border px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-50">
+                    Xem chi tiết
+                  </button>
+                </div>
               </div>
-            ))
-          )}
-        </div>
-      )}
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 };
