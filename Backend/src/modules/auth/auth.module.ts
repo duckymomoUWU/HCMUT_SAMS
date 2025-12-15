@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { User, UserSchema } from './schemas/user.schema';
@@ -15,12 +16,16 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     // Đăng ký User schema với Mongoose
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
 
-    // Đăng ký JwtModule với config từ .env
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'your-secret-key',
-      signOptions: {
-        expiresIn: '15m', // Access token hết hạn sau 15 phút
-      },
+    // Đăng ký JwtModule với config từ .env (async để đảm bảo env đã load)
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET') || 'your-secret-key',
+        signOptions: {
+          expiresIn: '15m',
+        },
+      }),
     }),
   ],
   controllers: [AuthController],

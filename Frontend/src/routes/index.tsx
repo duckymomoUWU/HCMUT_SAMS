@@ -27,6 +27,9 @@ import DevicesManagement from '../pages/Admin/DevicesManagement';
 import OrdersManagement from '../pages/Admin/OrdersManagement';
 import TimerManagement from '../pages/Admin/TimerManagement';
 
+// Payment Pages
+import PaymentResultPage from '../pages/Payment/PaymentResultPage';
+
 // test
 import SignInPage from '@/pages/SignInPage';
 import SignUpPage from '@/pages/SignUpPage';
@@ -41,6 +44,9 @@ export const AppRoutes = () => {
       <Route path={ROUTES.VERIFY_OTP} element={<VerifyOtpPage />} />
       <Route path="/signin" element={<SignInPage />} />
       <Route path='/signup' element={<SignUpPage />} />
+      
+      {/* Payment Result Route - Public (VNPay callback) */}
+      <Route path="/payment/result" element={<PaymentResultPage />} />
       
       {/* Client Routes - Protected (Student Only) */}
       <Route
