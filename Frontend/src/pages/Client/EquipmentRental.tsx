@@ -5,21 +5,33 @@ import {
   Plus,
   Minus,
   CheckCircle2,
-  Calendar,
-  Clock,
+  X,
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
 import { type Equipment } from "@/services/equipmentService";
+import equipmentService from "@/services/equipmentService";
 import equipmentRentalService, {
   type CreateRentalData,
 } from "@/services/equipmentRentalService";
 import { useNavigate } from "react-router-dom";
+import { decodeJWT } from "@/utils/jwt";
+
+// Time slots available for rental
+const TIME_SLOTS = [
+  { id: 1, label: "08:00 - 10:00", start: "08:00", end: "10:00", hours: 2 },
+  { id: 2, label: "10:00 - 12:00", start: "10:00", end: "12:00", hours: 2 },
+  { id: 3, label: "12:00 - 14:00", start: "12:00", end: "14:00", hours: 2 },
+  { id: 4, label: "14:00 - 16:00", start: "14:00", end: "16:00", hours: 2 },
+  { id: 5, label: "16:00 - 18:00", start: "16:00", end: "18:00", hours: 2 },
+  { id: 6, label: "18:00 - 20:00", start: "18:00", end: "20:00", hours: 2 },
+];
 
 interface CartItem {
   id: string;
   quantity: number;
-  duration: number;
   rentalDate: string;
+  timeSlot: string;
+  hours: number;
 }
 
 const EquipmentRental = () => {
@@ -30,110 +42,29 @@ const EquipmentRental = () => {
   const [selectedCategory, setSelectedCategory] = useState("Tất cả");
   const [search, setSearch] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
-  const [rentalDate, setRentalDate] = useState(
+
+  const [showModal, setShowModal] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(
+    null,
+  );
+  const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0],
   );
-  const [duration, setDuration] = useState(1);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>("");
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
-    // Mock data for now
-    const mockEquipments: Equipment[] = [
-      {
-        _id: "1",
-        name: "Bóng futsal",
-        type: "Bóng",
-        quantity: 10,
-        pricePerHour: 20000,
-        status: "available",
-        imageUrl: "",
-        description: "Bóng futsal chất lượng cao, phù hợp cho sân cỏ nhân tạo",
-      },
-      {
-        _id: "2",
-        name: "Áo bib",
-        type: "Quần áo",
-        quantity: 15,
-        pricePerHour: 5000,
-        status: "available",
-        imageUrl: "",
-        description: "Áo phân biệt đội, nhiều màu sắc",
-      },
-      {
-        _id: "3",
-        name: "Cọc biên",
-        type: "Dụng cụ tập",
-        quantity: 12,
-        pricePerHour: 3000,
-        status: "available",
-        imageUrl: "",
-        description: "Cọc tập luyện và đánh dấu biên sân",
-      },
-      {
-        _id: "4",
-        name: "Bóng rổ",
-        type: "Bóng",
-        quantity: 5,
-        pricePerHour: 25000,
-        status: "available",
-        imageUrl: "",
-        description: "Bóng rổ tiêu chuẩn thi đấu",
-      },
-      {
-        _id: "5",
-        name: "Vợt cầu lông",
-        type: "Vợt",
-        quantity: 6,
-        pricePerHour: 15000,
-        status: "available",
-        imageUrl: "",
-        description: "Vợt cầu lông chất lượng cao với cước căng sẵn",
-      },
-      {
-        _id: "6",
-        name: "Quả cầu lông",
-        type: "Vợt",
-        quantity: 30,
-        pricePerHour: 2000,
-        status: "available",
-        imageUrl: "",
-        description: "Quả cầu lông chất lượng cao",
-      },
-      {
-        _id: "7",
-        name: "Lưới cầu lông",
-        type: "Dụng cụ tập",
-        quantity: 3,
-        pricePerHour: 10000,
-        status: "available",
-        imageUrl: "",
-        description: "Lưới tiêu chuẩn cho sân cầu lông",
-      },
-      {
-        _id: "8",
-        name: "Găng tay thủ môn",
-        type: "Thiết bị khác",
-        quantity: 4,
-        pricePerHour: 8000,
-        status: "available",
-        imageUrl: "",
-        description: "Găng tay chất lượng cao, chống trượt",
-      },
-    ];
-    setEquipments(mockEquipments);
-    setLoading(false);
-
-    // Uncomment below when backend is ready
-    // const fetchEquipments = async () => {
-    //   try {
-    //     const data = await equipmentService.getEquipments();
-    //     setEquipments(data);
-    //   } catch (error) {
-    //     console.error("Failed to fetch equipments:", error);
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    // };
-    // fetchEquipments();
+    const fetchEquipments = async () => {
+      try {
+        const data = await equipmentService.getEquipments();
+        setEquipments(data);
+      } catch (error) {
+        console.error("Failed to fetch equipments:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEquipments();
   }, []);
 
   const categories = ["Tất cả", ...new Set(equipments.map((e) => e.type))];
@@ -144,46 +75,91 @@ const EquipmentRental = () => {
       e.name.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const addToCart = (id: string) => {
-    setCart((prev) => {
-      const found = prev.find((item) => item.id === id);
-      if (found) {
-        const eq = equipments.find((e) => e._id === id)!;
-        return prev.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                quantity: Math.min(item.quantity + 1, eq.quantity),
-              }
-            : item,
-        );
-      } else {
-        return [...prev, { id, quantity: 1, duration, rentalDate }];
-      }
-    });
+  const openRentalModal = (equipment: Equipment) => {
+    setSelectedEquipment(equipment);
+    setSelectedDate(new Date().toISOString().split("T")[0]);
+    setSelectedTimeSlot("");
+    setQuantity(1);
+    setShowModal(true);
   };
 
-  const updateQuantity = (id: string, delta: number) => {
+  // Add to cart after selecting date/time/quantity
+  const addToCart = () => {
+    if (!selectedEquipment || !selectedDate || !selectedTimeSlot) {
+      alert("Vui lòng chọn đầy đủ ngày giờ!");
+      return;
+    }
+
+    const slot = TIME_SLOTS.find((s) => s.label === selectedTimeSlot)!;
+    const newItem: CartItem = {
+      id: selectedEquipment._id,
+      quantity,
+      rentalDate: selectedDate,
+      timeSlot: selectedTimeSlot,
+      hours: slot.hours,
+    };
+
+    setCart((prev) => [...prev, newItem]);
+    setShowModal(false);
+    alert("Thêm vào giỏ thành công!");
+  };
+
+  const removeFromCart = (index: number) => {
+    setCart((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateCartQuantity = (index: number, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      removeFromCart(index);
+      return;
+    }
+    const item = cart[index];
+    const equipment = equipments.find((e) => e._id === item.id);
+    if (equipment && newQuantity > equipment.quantity) {
+      alert(
+        `Chỉ còn ${equipment.quantity} thiết bị. Không thể chọn ${newQuantity}!`,
+      );
+      return;
+    }
     setCart((prev) =>
-      prev
-        .map((item) => ({
-          ...item,
-          quantity:
-            item.id === id ? Math.max(item.quantity + delta, 1) : item.quantity,
-        }))
-        .filter((item) => item.quantity > 0),
+      prev.map((item, i) =>
+        i === index ? { ...item, quantity: newQuantity } : item,
+      ),
     );
   };
 
   const total = cart.reduce((sum, item) => {
     const eq = equipments.find((e) => e._id === item.id);
-    return sum + (eq ? eq.pricePerHour * item.quantity * item.duration : 0);
+    if (eq) {
+      return sum + eq.pricePerHour * item.quantity * item.hours;
+    }
+    return sum;
   }, 0);
 
   const handleConfirmRental = async () => {
     try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (!user._id) {
+      // Get userId
+      const token = localStorage.getItem("accessToken");
+      let userId: string | null = null;
+
+      if (token) {
+        try {
+          const decoded = decodeJWT(token);
+          userId = decoded.sub || decoded.id || decoded._id;
+          console.log("User ID from token:", userId);
+        } catch (e) {
+          console.error("Failed to decode token:", e);
+        }
+      }
+
+      if (!userId) {
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        userId = userData?._id;
+        console.log("User ID from localStorage:", userId);
+      }
+
+      if (!userId) {
+        console.error("Could not find user ID");
         alert("Vui lòng đăng nhập!");
         return;
       }
@@ -191,30 +167,38 @@ const EquipmentRental = () => {
       // Create rentals for each cart item
       const rentalPromises = cart.map(async (item) => {
         const data: CreateRentalData = {
-          userId: user._id,
+          userId: userId!,
           equipmentId: item.id,
           quantity: item.quantity,
           rentalDate: item.rentalDate,
-          duration: item.duration,
+          duration: item.hours,
           totalPrice:
             equipments.find((e) => e._id === item.id)!.pricePerHour *
             item.quantity *
-            item.duration,
+            item.hours,
         };
         return equipmentRentalService.createRental(data);
       });
 
       const rentals = await Promise.all(rentalPromises);
 
-      // For now, navigate to payment with first rental ID
+      console.log("Created rentals:", rentals);
+
+      if (!rentals[0]?._id) {
+        throw new Error("Failed to get rental ID from response");
+      }
+
+      // Navigate to payment
       const rentalId = rentals[0]._id;
-      navigate(`/payment?rentalId=${rentalId}&total=${total}`);
+      const paymentUrl = `/client/payment?rentalId=${rentalId}&total=${total}`;
+      console.log("Navigating to:", paymentUrl);
+      navigate(paymentUrl);
 
       setShowConfirm(false);
       setCart([]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to create rental:", error);
-      alert("Có lỗi xảy ra khi thuê thiết bị!");
+      alert(`Có lỗi xảy ra khi thuê thiết bị!\n${error.message || ""}`);
     }
   };
 
@@ -249,38 +233,13 @@ const EquipmentRental = () => {
                     onClick={() => setSelectedCategory(cat)}
                     className={`rounded-full border px-3 py-1 transition ${
                       selectedCategory === cat
-                        ? "border-blue-600 bg-blue-600 text-white"
-                        : "border-gray-200 bg-white text-gray-800 hover:bg-blue-50"
+                        ? "border-blue-600 bg-blue-50 text-blue-600"
+                        : "border-gray-200 text-gray-700 hover:border-gray-300"
                     }`}
                   >
                     {cat}
                   </button>
                 ))}
-              </div>
-
-              <div className="flex gap-4">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-gray-500" />
-                  <input
-                    type="date"
-                    value={rentalDate}
-                    onChange={(e) => setRentalDate(e.target.value)}
-                    className="rounded-md border px-3 py-1 text-sm text-black"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-gray-500" />
-                  <select
-                    value={duration}
-                    onChange={(e) => setDuration(Number(e.target.value))}
-                    className="rounded-md border px-3 py-1 text-sm text-black"
-                  >
-                    <option value={1}>1 giờ</option>
-                    <option value={2}>2 giờ</option>
-                    <option value={3}>3 giờ</option>
-                    <option value={4}>4 giờ</option>
-                  </select>
-                </div>
               </div>
             </div>
           </div>
@@ -309,35 +268,16 @@ const EquipmentRental = () => {
                       {item.pricePerHour.toLocaleString("vi-VN")} đ/giờ
                     </p>
                     <p className="mt-1 text-xs text-gray-600">
-                      Còn {item.quantity} thiết bị{" "}
+                      Còn {item.quantity} thiết bị
                     </p>
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between gap-2">
-                    <div className="flex items-center rounded-md border">
-                      <button
-                        onClick={() => updateQuantity(item._id, -1)}
-                        className="px-2 py-1 text-gray-800 hover:bg-gray-100"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </button>
-                      <span className="px-2 text-sm text-gray-900">
-                        {cart.find((c) => c.id === item._id)?.quantity || 0}
-                      </span>
-                      <button
-                        onClick={() => updateQuantity(item._id, +1)}
-                        className="px-2 py-1 text-gray-800 hover:bg-gray-100"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => addToCart(item._id)}
-                      className="flex-1 rounded-md bg-blue-600 py-1 text-sm text-white transition hover:bg-blue-700 focus:ring-2 focus:ring-blue-400"
-                    >
-                      Thêm vào giỏ
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => openRentalModal(item)}
+                    className="mt-3 w-full rounded-md bg-blue-600 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+                  >
+                    Chọn thuê
+                  </button>
                 </div>
               ))}
             </div>
@@ -354,27 +294,54 @@ const EquipmentRental = () => {
             {cart.length === 0 ? (
               <p className="text-sm text-gray-600">Chưa có thiết bị nào.</p>
             ) : (
-              cart.map((item) => {
+              cart.map((item, idx) => {
                 const eq = equipments.find((e) => e._id === item.id)!;
                 return (
                   <div
-                    key={item.id}
-                    className="flex items-center justify-between text-gray-800"
+                    key={idx}
+                    className="rounded-lg border border-gray-200 p-2 text-gray-800"
                   >
-                    <div>
-                      <span>{eq.name}</span>
-                      <div className="text-xs text-gray-500">
-                        {item.quantity} × {item.duration}h
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="text-xs font-medium">{eq.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {item.rentalDate} {item.timeSlot}
+                        </p>
                       </div>
+                      <button
+                        onClick={() => removeFromCart(idx)}
+                        className="text-gray-400 hover:text-red-500"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
                     </div>
-                    <span>
+                    <div className="mt-2 flex items-center gap-2">
+                      <button
+                        onClick={() =>
+                          updateCartQuantity(idx, item.quantity - 1)
+                        }
+                        className="rounded px-2 py-1 text-gray-600 hover:bg-gray-100"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+                      <span className="px-2 text-sm">{item.quantity}</span>
+                      <button
+                        onClick={() =>
+                          updateCartQuantity(idx, item.quantity + 1)
+                        }
+                        className="rounded px-2 py-1 text-gray-600 hover:bg-gray-100"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <p className="mt-1 text-right text-xs font-medium">
                       {(
                         eq.pricePerHour *
                         item.quantity *
-                        item.duration
+                        item.hours
                       ).toLocaleString("vi-VN")}{" "}
                       đ
-                    </span>
+                    </p>
                   </div>
                 );
               })
@@ -392,10 +359,10 @@ const EquipmentRental = () => {
           <button
             disabled={cart.length === 0}
             onClick={() => setShowConfirm(true)}
-            className={`mt-4 w-full rounded-md py-2 text-sm font-medium transition ${
+            className={`mt-4 w-full rounded-md py-2 font-medium transition ${
               cart.length === 0
                 ? "cursor-not-allowed bg-gray-200 text-gray-500"
-                : "bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-400"
+                : "bg-blue-600 text-white hover:bg-blue-700"
             }`}
           >
             Xác nhận thuê
@@ -403,7 +370,135 @@ const EquipmentRental = () => {
         </div>
       </div>
 
-      {/* Modal xác nhận */}
+      {/* Phần chọn ngày/giờ/số lượng thiết bị thuê */}
+      {showModal && selectedEquipment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="relative w-[450px] rounded-xl bg-white p-6 shadow-xl">
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <h3 className="mb-1 text-lg font-semibold text-gray-900">
+              {selectedEquipment.name}
+            </h3>
+            <p className="mb-4 text-sm text-gray-700">
+              {selectedEquipment.pricePerHour.toLocaleString("vi-VN")} đ/giờ
+            </p>
+
+            <div className="space-y-4">
+              {/* Chọn ngày */}
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  Ngày thuê
+                </label>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  min={new Date().toISOString().split("T")[0]}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Chọn khung giờ */}
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  Khung giờ
+                </label>
+                <div className="space-y-2">
+                  {TIME_SLOTS.map((slot) => (
+                    <label
+                      key={slot.id}
+                      className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition hover:bg-blue-50"
+                    >
+                      <input
+                        type="radio"
+                        name="timeSlot"
+                        value={slot.label}
+                        checked={selectedTimeSlot === slot.label}
+                        onChange={(e) => setSelectedTimeSlot(e.target.value)}
+                        className="h-4 w-4"
+                      />
+                      <span className="flex-1 text-sm text-gray-700">
+                        {slot.label} ({slot.hours}h)
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Chọn số lượng */}
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  Số lượng
+                </label>
+                <div className="flex w-fit items-center gap-3 rounded-md border">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="px-3 py-2 text-gray-600 hover:bg-gray-100"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="px-4 text-sm font-medium text-gray-700">
+                    {quantity}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setQuantity(
+                        Math.min(selectedEquipment.quantity, quantity + 1),
+                      )
+                    }
+                    className="px-3 py-2 text-gray-600 hover:bg-gray-100"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Có {selectedEquipment.quantity} thiết bị
+                </p>
+              </div>
+
+              {/* Tổng tiền */}
+              {selectedTimeSlot && (
+                <div className="rounded-lg bg-blue-50 p-3">
+                  <p className="text-sm text-gray-700">
+                    Tổng:{" "}
+                    <span className="font-semibold text-blue-600">
+                      {(
+                        selectedEquipment.pricePerHour *
+                        quantity *
+                        (TIME_SLOTS.find((s) => s.label === selectedTimeSlot)
+                          ?.hours || 0)
+                      ).toLocaleString("vi-VN")}{" "}
+                      đ
+                    </span>
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setShowModal(false)}
+                className="rounded-md border px-4 py-2 text-gray-700 hover:bg-gray-50"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={addToCart}
+                className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+              >
+                <CheckCircle2 className="h-4 w-4" /> Thêm vào giỏ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Khung xác nhận */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="relative w-[420px] rounded-xl bg-white p-6 shadow-xl">
@@ -415,29 +510,21 @@ const EquipmentRental = () => {
             </p>
 
             <div className="space-y-2 text-sm text-gray-800">
-              {cart.map((item) => {
+              {cart.map((item, idx) => {
                 const eq = equipments.find((e) => e._id === item.id)!;
                 return (
-                  <p key={item.id}>
+                  <p key={idx}>
                     <span className="font-medium">{eq.name}</span> ×{" "}
-                    {item.quantity} × {item.duration}h →{" "}
+                    {item.quantity} ({item.timeSlot}) →{" "}
                     {(
                       eq.pricePerHour *
                       item.quantity *
-                      item.duration
+                      item.hours
                     ).toLocaleString("vi-VN")}{" "}
                     đ
                   </p>
                 );
               })}
-            </div>
-
-            <hr className="my-4" />
-
-            <div className="text-sm text-gray-700">
-              <p>
-                Ngày thuê: {new Date(rentalDate).toLocaleDateString("vi-VN")}
-              </p>
             </div>
 
             <hr className="my-4" />
@@ -458,7 +545,7 @@ const EquipmentRental = () => {
               </button>
               <button
                 onClick={handleConfirmRental}
-                className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-400"
+                className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
               >
                 <CheckCircle2 className="h-4 w-4" /> Xác nhận
               </button>

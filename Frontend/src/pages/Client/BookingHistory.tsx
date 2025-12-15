@@ -13,23 +13,61 @@ import PageHeader from "@/components/Admin/PageHeader";
 import equipmentRentalService, {
   type EquipmentRental,
 } from "@/services/equipmentRentalService";
+import equipmentService, { type Equipment } from "@/services/equipmentService";
+import { decodeJWT } from "@/utils/jwt";
 
 const BookingHistory = () => {
-  const [activeTab, setActiveTab] = useState<"upcoming" | "history">(
-    "upcoming",
-  );
+  const [activeTab, setActiveTab] = useState<"upcoming" | "history">("history");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("Tất cả");
   const [rentals, setRentals] = useState<EquipmentRental[]>([]);
+  const [equipmentMap, setEquipmentMap] = useState<{
+    [key: string]: Equipment;
+  }>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchRentals = async () => {
       try {
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
-        if (user._id) {
-          const data = await equipmentRentalService.getUserRentals(user._id);
+        // Get userId
+        const token = localStorage.getItem("accessToken");
+        let userId: string | null = null;
+
+        if (token) {
+          try {
+            const decoded = decodeJWT(token);
+            userId = decoded.sub || decoded.id || decoded._id;
+            console.log("User ID from token:", userId);
+          } catch (e) {
+            console.error("Failed to decode token:", e);
+          }
+        }
+
+        if (!userId) {
+          const user = JSON.parse(localStorage.getItem("user") || "{}");
+          userId = user._id;
+          console.log("User ID from localStorage:", userId);
+        }
+
+        if (userId) {
+          console.log("Fetching rentals for user:", userId);
+          const data = await equipmentRentalService.getUserRentals(userId);
+          console.log("Fetched rentals:", data);
           setRentals(data);
+          // Fetch all equipment
+          try {
+            const allEquipment = await equipmentService.getEquipments();
+            const map: { [key: string]: Equipment } = {};
+            allEquipment.forEach((eq) => {
+              map[eq._id] = eq;
+            });
+            setEquipmentMap(map);
+            console.log("Equipment map:", map);
+          } catch (error) {
+            console.error("Failed to fetch equipment:", error);
+          }
+        } else {
+          console.error("No user ID found");
         }
       } catch (error) {
         console.error("Failed to fetch rentals:", error);
@@ -84,28 +122,50 @@ const BookingHistory = () => {
     },
   ];
 
-  const rentalBookings = rentals.map((rental) => ({
-    id: rental._id,
-    type: "equipment-rental",
-    name: `Thuê thiết bị - ${rental.equipmentId}`, // Would need equipment name
-    date: rental.rentalDate,
-    time: `${rental.duration} giờ`,
-    price: rental.totalPrice,
-    status:
-      rental.status === "renting"
-        ? "Đang thuê"
-        : rental.status === "completed"
-          ? "Đã trả"
-          : "Quá hạn",
-    statusColor:
-      rental.status === "renting"
-        ? "blue"
-        : rental.status === "completed"
-          ? "green"
-          : "red",
-  }));
+  const rentalBookings = rentals.map((rental) => {
+    const equipment = equipmentMap[rental.equipmentId];
+    const equipmentName = equipment
+      ? equipment.name
+      : `Thiết bị (${rental.equipmentId})`;
+
+    // Format date
+    const rentalDateTime = new Date(rental.rentalDate);
+    const formattedDate = rentalDateTime.toLocaleDateString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+
+    // Calculate time range based on duration (2-hour slots)
+    const startHour = 8;
+    const endHour = startHour + rental.duration;
+    const timeRange = `${String(startHour).padStart(2, "0")}:00 - ${String(endHour).padStart(2, "0")}:00`;
+
+    return {
+      id: rental._id,
+      type: "equipment-rental",
+      name: `Thuê thiết bị - ${equipmentName}`,
+      date: formattedDate,
+      time: timeRange,
+      price: rental.totalPrice,
+      status:
+        rental.status === "renting"
+          ? "Đang thuê"
+          : rental.status === "completed"
+            ? "Đã trả"
+            : "Quá hạn",
+      statusColor:
+        rental.status === "renting"
+          ? "blue"
+          : rental.status === "completed"
+            ? "green"
+            : "red",
+    };
+  });
 
   const bookings = [...mockBookings, ...rentalBookings];
+
+  console.log("All bookings to display:", bookings);
 
   const statusOptions = [
     "Tất cả",
@@ -192,7 +252,7 @@ const BookingHistory = () => {
         </button>
       </div>
 
-      {/* Search & Filter */}
+      {/* Tìm kiếm và bộ lọc */}
       <div className="rounded-xl border bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row">
           <div className="relative flex-1">
@@ -220,7 +280,7 @@ const BookingHistory = () => {
         </div>
       </div>
 
-      {/* Content */}
+      {/* Xem lịch sử thuê và lịch thuê sắp tới */}
       {activeTab === "upcoming" ? (
         <div className="rounded-xl border bg-white p-8 text-center shadow-sm">
           <Calendar className="mx-auto mb-4 h-16 w-16 text-gray-300" />
