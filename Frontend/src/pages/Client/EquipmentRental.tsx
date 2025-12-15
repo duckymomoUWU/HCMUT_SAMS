@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Search, ShoppingCart, Plus, Minus, CheckCircle2 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
+import api from "@/lib/Axios";
 
 const EquipmentRental = () => {
   const equipments = [
@@ -18,6 +19,7 @@ const EquipmentRental = () => {
   const [selectedCategory, setSelectedCategory] = useState("Tất cả");
   const [search, setSearch] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const categories = ["Tất cả", "Bóng", "Quần áo", "Vợt", "Dụng cụ tập", "Thiết bị khác"];
 
@@ -57,6 +59,45 @@ const EquipmentRental = () => {
     const eq = equipments.find((e) => e.id === item.id);
     return sum + (eq ? eq.price * item.quantity : 0);
   }, 0);
+
+  const handleEquipmentRentalSubmit = async () => {
+    if (cart.length === 0) {
+      alert("Giỏ hàng trống");
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      // Tạo mock equipment rental ID
+      const mockRentalId = `EQUIPMENT_${Date.now()}`;
+
+      // Tạo description cho VNPay
+      const itemsList = cart.map(item => {
+        const eq = equipments.find(e => e.id === item.id)!;
+        return `${eq.name} x${item.quantity}`;
+      }).join(', ');
+
+      // Gọi API payment
+      const paymentResponse = await api.post('/payment', {
+        type: 'equipment-rental',
+        referenceId: mockRentalId,
+        amount: total,
+        description: `Thue thiet bi: ${itemsList}`,
+      });
+
+      // Lấy URL VNPay
+      const paymentUrl = paymentResponse.data.payment.paymentUrl;
+
+      // Redirect sang VNPay
+      window.location.href = paymentUrl;
+
+    } catch (error: any) {
+      console.error('Lỗi khi thuê thiết bị:', error);
+      alert(error.response?.data?.message || 'Có lỗi xảy ra khi thuê thiết bị. Vui lòng thử lại.');
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-8 pt-4">
@@ -216,18 +257,41 @@ const EquipmentRental = () => {
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => setShowConfirm(false)}
-                className="px-4 py-2 text-gray-700 border rounded-md hover:bg-gray-50"
+                disabled={isProcessing}
+                className="px-4 py-2 text-gray-700 border rounded-md hover:bg-gray-50 disabled:cursor-not-allowed disabled:bg-gray-100"
               >
                 Hủy
               </button>
               <button
-                onClick={() => {
-                  setShowConfirm(false);
-                  alert("Thuê thiết bị thành công!");
-                }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-400 flex items-center gap-2"
+                onClick={handleEquipmentRentalSubmit}
+                disabled={isProcessing}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-400 flex items-center gap-2 disabled:cursor-not-allowed disabled:bg-gray-400"
               >
-                <CheckCircle2 className="w-4 h-4" /> Xác nhận
+                {isProcessing ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Đang xử lý...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" /> Xác nhận
+                  </>
+                )}
               </button>
             </div>
           </div>
