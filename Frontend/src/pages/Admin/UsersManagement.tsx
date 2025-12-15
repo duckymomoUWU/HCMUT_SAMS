@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState  } from "react";
 import PageHeader from "@/components/Admin/PageHeader";
 import {
   User,
@@ -9,89 +9,54 @@ import {
   UserX,
   ChevronDown,
 } from "lucide-react";
-import StatCard from "@/components/Admin/StatCard";
+import StatCard from "@/components/Admin/StatCard"; 
+import { getUsers } from "@/services/userService";
+import dayjs from "dayjs";
 
+type UserStatus = "active" | "inactive" | "locked";
+type UserRole = "student" | "admin" | "teacher";
 
-type UserRole = "Sinh viên" | "Quản trị viên" | "Giảng viên";
-type UserStatus = "Hoạt động" | "Không hoạt động" | "Bị khóa";
+const statusOptions: { value: "all" | UserStatus; label: string }[] = [
+  { value: "all", label: "Tất cả trạng thái" },
+  { value: "active", label: "Hoạt động" },
+  { value: "inactive", label: "Không hoạt động" },
+  { value: "locked", label: "Bị khóa" },
+];
+
+const roleOptions: { value: "all" | UserRole; label: string }[] = [
+  { value: "all", label: "Tất cả vai trò" },
+  { value: "student", label: "Sinh viên" },
+  { value: "admin", label: "Quản trị viên" },
+  { value: "teacher", label: "Giảng viên" },
+];
 
 interface AppUser {
-  id: string;
-  name: string;
+  _id: string;
+  fullName: string;
   email: string;
   phone?: string;
   role: UserRole;
   status: UserStatus;
-  joinDate: string;
-  bookings: number;
-  penalty?: number;
+  createdAt?: string;
+  bookings?: number;
+  penaltyPoints?: number;
 }
-
-const SAMPLE_USERS: AppUser[] = [
-  {
-    id: "u1",
-    name: "Nguyễn Văn A",
-    email: "student2@hcmut.edu.vn",
-    phone: "0123456789",
-    role: "Sinh viên",
-    status: "Hoạt động",
-    joinDate: "07-07-2025",
-    bookings: 12,
-    penalty: 2,
-  },
-  {
-    id: "u2",
-    name: "Trần Văn B",
-    email: "student12@hcmut.edu.vn",
-    phone: "0123456798",
-    role: "Sinh viên",
-    status: "Hoạt động",
-    joinDate: "06-07-2025",
-    bookings: 11,
-  },
-  {
-    id: "u3",
-    name: "Lê Thị C",
-    email: "student3@hcmut.edu.vn",
-    phone: "0123456799",
-    role: "Sinh viên",
-    status: "Bị khóa",
-    joinDate: "05-07-2025",
-    bookings: 13,
-    penalty: 12,
-  },
-  {
-    id: "u4",
-    name: "Phan Ngọc D",
-    email: "student4@hcmut.edu.vn",
-    phone: "0123456783",
-    role: "Sinh viên",
-    status: "Không hoạt động",
-    joinDate: "04-07-2025",
-    bookings: 14,
-  },
-  {
-    id: "u5",
-    name: "Huỳnh Gia E",
-    email: "admin@hcmut.edu.vn",
-    phone: "0123456785",
-    role: "Quản trị viên",
-    status: "Hoạt động",
-    joinDate: "03-07-2025",
-    bookings: 0,
-  },
-];
 
 const UsersManagement: React.FC = () => {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | UserStatus>("all");
   const [roleFilter, setRoleFilter] = useState<"all" | UserRole>("all");
+  const [users, setUsers] = useState<AppUser[]>([]);
+
+  useEffect(() => {
+    getUsers().then(setUsers);
+  }, []);
 
   const stats = [
     {
       id: 1,
       title: "Tổng người dùng",
-      value: String(SAMPLE_USERS.length),
+      value: String(users.length),
       color: "text-blue-600",
       icon: (
         <div className="p-2 bg-blue-50 rounded-lg">
@@ -102,7 +67,7 @@ const UsersManagement: React.FC = () => {
     {
       id: 2,
       title: "Đang hoạt động",
-      value: String(SAMPLE_USERS.filter((u) => u.status === "Hoạt động").length),
+      value: String(users.filter((u) => u.status === "active").length),
       color: "text-green-600",
       icon: (
         <div className="p-2 bg-green-50 rounded-lg">
@@ -113,7 +78,7 @@ const UsersManagement: React.FC = () => {
     {
       id: 3,
       title: "Bị khóa",
-      value: String(SAMPLE_USERS.filter((u) => u.status === "Bị khóa").length),
+      value: String(users.filter((u) => u.status === "locked").length),
       color: "text-red-600",
       icon: (
         <div className="p-2 bg-red-50 rounded-lg">
@@ -134,12 +99,12 @@ const UsersManagement: React.FC = () => {
     },
   ];
 
-  const filtered = SAMPLE_USERS.filter((u) => {
+  const filtered = users.filter((u) => {
     const q = query.trim().toLowerCase();
     if (
       q &&
       !(
-        u.name.toLowerCase().includes(q) ||
+        (u.fullName?.toLowerCase() || "").includes(q) ||
         u.email.toLowerCase().includes(q) ||
         (u.phone ?? "").includes(q)
       )
@@ -191,10 +156,9 @@ const UsersManagement: React.FC = () => {
             onChange={(e) => setStatusFilter(e.target.value as any)}
             className="px-3 py-2 border border-gray-300 rounded-md bg-white text-sm text-gray-800 focus:ring-2 focus:ring-blue-500"
           >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="Hoạt động">Hoạt động</option>
-            <option value="Không hoạt động">Không hoạt động</option>
-            <option value="Bị khóa">Bị khóa</option>
+            {statusOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
           </select>
 
           <select
@@ -202,10 +166,9 @@ const UsersManagement: React.FC = () => {
             onChange={(e) => setRoleFilter(e.target.value as any)}
             className="px-3 py-2 border border-gray-300 rounded-md bg-white text-sm text-gray-800 focus:ring-2 focus:ring-blue-500"
           >
-            <option value="all">Tất cả vai trò</option>
-            <option value="Sinh viên">Sinh viên</option>
-            <option value="Quản trị viên">Quản trị viên</option>
-            <option value="Giảng viên">Giảng viên</option>
+            {roleOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
           </select>
 
           <div className="ml-auto flex gap-2">
@@ -235,12 +198,12 @@ const UsersManagement: React.FC = () => {
         <div className="space-y-3">
           {filtered.map((u) => (
             <div
-              key={u.id}
+              key={u._id}
               className="flex items-center justify-between border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition"
             >
               <div className="flex items-center gap-4 min-w-0">
                 <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold text-sm">
-                  {u.name
+                  {u.fullName
                     .split(" ")
                     .map((p) => p[0])
                     .slice(-2)
@@ -248,20 +211,20 @@ const UsersManagement: React.FC = () => {
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-medium text-gray-800 truncate">{u.name}</p>
+                    <p className="font-medium text-gray-800 truncate">{u.fullName}</p>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
-                      {u.role}
+                      {roleOptions.find((r) => r.value === u.role)?.label || u.role}
                     </span>
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        u.status === "Hoạt động"
+                        u.status === "active"
                           ? "bg-green-100 text-green-700"
-                          : u.status === "Bị khóa"
+                          : u.status === "locked"
                           ? "bg-red-100 text-red-700"
                           : "bg-gray-100 text-gray-700"
                       }`}
                     >
-                      {u.status}
+                      {u.status || statusOptions.find((s) => s.value === u.status)?.label}
                     </span>
                   </div>
                   <div className="text-xs text-gray-600 mt-1 flex flex-wrap gap-3">
@@ -273,25 +236,29 @@ const UsersManagement: React.FC = () => {
                         <Phone className="w-3 h-3 text-gray-400" /> {u.phone}
                       </span>
                     )}
-                    <span>Tham gia: {u.joinDate}</span>
-                    <span>{u.bookings} lần đặt</span>
-                    {typeof u.penalty === "number" && (
+                    <span>Tham gia: {" "}
+                      {u.createdAt ? dayjs(u.createdAt).format("DD/MM/YYYY") : "N/A"}
+                    </span>
+                    {typeof u.bookings === "number" && (
+                      <span>{u.bookings} lần đặt</span>
+                    )} 
+                    {typeof u.penaltyPoints === "number" && (
                       <span className="text-red-600">
-                        · {u.penalty} điểm phạt
+                        · {u.penaltyPoints} điểm phạt
                       </span>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              {/* <div className="flex items-center gap-2">
                 <button className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50">
                   Chi tiết
                 </button>
                 <button className="p-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50">
                   <ChevronDown className="w-4 h-4 text-gray-600" />
                 </button>
-              </div>
+              </div> */}
             </div>
           ))}
 
