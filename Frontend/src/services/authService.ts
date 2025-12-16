@@ -98,8 +98,10 @@ class AuthService {
   
   // ========== REFRESH ACCESS TOKEN ==========
   async refreshAccessToken(): Promise<string | null> {
+    console.log("Attempting to refresh access token...");
     try {
       const refreshToken = localStorage.getItem("refreshToken");
+      console.log("Using refresh token:", refreshToken);
 
       if (!refreshToken) {
         throw new Error("No refresh token available");
@@ -110,6 +112,8 @@ class AuthService {
       const response = await api.post<AuthResponse>("/auth/refresh", {
         refreshToken,
       });
+
+      console.log("'/auth/refresh' response:", response.data);
 
       if (response.data.success) {
         // Lưu access token mới

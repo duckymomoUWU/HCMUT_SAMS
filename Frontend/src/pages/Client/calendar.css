@@ -41,14 +41,18 @@
   font-weight: 500;
 }
 
-.react-calendar__tile--active {
-  background: #2563eb !important; /* bg-blue-600 */
+/* Enhanced styling for the active (selected) tile */
+.react-calendar__tile.react-calendar__tile--active {
+  background-color: #1a73e8 !important; /* A very distinct Google Blue */
   color: white !important;
-  font-weight: 600 !important;
+  font-weight: bold !important;
 }
 
-.react-calendar__tile--active:enabled:hover {
-  background: #1d4ed8 !important; /* hover darker blue */
+/* Ensure this also applies to selected tiles that are also "today" */
+.react-calendar__tile--now.react-calendar__tile--active {
+  background-color: #1a73e8 !important; /* Same distinct blue */
+  color: white !important;
+  font-weight: bold !important;
 }
 
 .react-calendar__tile:enabled:hover {

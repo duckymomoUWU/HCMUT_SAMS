@@ -7,6 +7,7 @@ import {
   Users,
   UserCircle2,
 } from "lucide-react";
+import authService from "@/services/authService"; // Import authService
 
 const menu = [
   { name: "Tổng quan", path: "/admin", icon: <LayoutDashboard size={18} /> },
@@ -19,6 +20,8 @@ const menu = [
 
 const SlideBar = () => { 
   const location = useLocation();
+  const user = authService.getCurrentUser(); // Get user info
+
 
   return (
     <aside className="fixed top-0 left-0 h-screen w-64 bg-white border-r border-gray-200 flex flex-col justify-between">
@@ -56,11 +59,11 @@ const SlideBar = () => {
       {/* Footer info */}
       <div className="p-4 border-t border-gray-100 flex items-center gap-3">
         <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold">
-          A
+          {user?.fullName?.charAt(0).toUpperCase() || '?'}
         </div>
         <div>
-          <p className="text-sm font-medium text-gray-800">Quản trị viên</p>
-          <p className="text-xs text-gray-500">admin@hcmut.edu.vn</p>
+          <p className="text-sm font-medium text-gray-800">{user?.fullName || 'Người dùng'}</p>
+          <p className="text-xs text-gray-500">{user?.email || 'email@example.com'}</p>
         </div>
       </div>
     </aside>

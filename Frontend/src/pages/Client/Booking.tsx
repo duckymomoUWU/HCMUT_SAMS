@@ -1,88 +1,202 @@
-import { useState } from "react";
-import { CalendarDays, Clock, CheckCircle2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+// Frontend/src/pages/Client/Booking.tsx
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { CalendarDays, Clock, CheckCircle2, AlertCircle, Loader2, User as UserIcon, MapPin } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
 import StatCard from "@/components/Admin/StatCard";
 import Calendar from "react-calendar";
 import "react-calendar/dist/calendar.css";
 import "@/pages/Client/calendar.css";
-import api from "@/lib/Axios";
+import api from "@/services/api"; // Import the api service
+
+// Define types for our data
+interface TimeSlot {
+  time: string;
+  start: string;
+  end: string;
+  price: number;
+  status: 'available' | 'booked' | 'maintenance';
+}
+
+interface BookingStat {
+  _id: string;
+  status: 'PENDING_PAYMENT' | 'CONFIRMED' | 'PAID' | 'CANCELLED' | 'FAILED' | 'CHECKED_IN';
+}
+
+interface UserProfile {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  phone?: string;
+}
+
+// Placeholder for Facility details, ideally fetched from API
+interface FacilityDetails {
+  id: string;
+  name: string;
+  type: string;
+  location: string;
+}
+
 const Booking = () => {
-  const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedSlots, setSelectedSlots] = useState<TimeSlot[]>([]); // Changed to array
+  const [slots, setSlots] = useState<TimeSlot[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [loadingBooking, setLoadingBooking] = useState(false);
+  
+  const [stats, setStats] = useState({ total: 0, approved: 0, pending: 0, cancelled: 0 });
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  const slots = [
-    { time: "07:00 - 08:00", price: 180000, status: "available" },
-    { time: "08:00 - 09:00", price: 180000, status: "available" },
-    { time: "09:00 - 10:00", price: 180000, status: "booked" },
-    { time: "10:00 - 11:00", price: 180000, status: "maintenance" },
-    { time: "13:00 - 14:00", price: 180000, status: "available" },
-    { time: "14:00 - 15:00", price: 180000, status: "available" },
-    { time: "15:00 - 16:00", price: 180000, status: "booked" },
-    { time: "16:00 - 17:00", price: 180000, status: "available" },
-    { time: "17:00 - 18:00", price: 180000, status: "available" },
-    { time: "18:00 - 19:00", price: 180000, status: "booked" },
-    { time: "19:00 - 20:00", price: 180000, status: "available" },
-    { time: "20:00 - 21:00", price: 180000, status: "available" },
-  ];
+  const [showConfirm, setShowConfirm] = useState(false);  
 
-  const stats = [
-    { id: 1, title: "Tổng số đơn đặt", value: "42" },
-    { id: 2, title: "Đơn đã duyệt", value: "35" },
-    { id: 3, title: "Đơn đang xử lý", value: "5" },
-    { id: 4, title: "Đơn bị hủy", value: "2" },
-  ];
+  const maxDate = new Date();
+  maxDate.setDate(maxDate.getDate() + 30);  
 
-  const handleBookingSubmit = async () => {
-    if (selectedSlot === null) {
-      alert("Vui lòng chọn khung giờ");
-      return;
-    }
+  // Hardcode a facility ID for now. In a real app, this would be dynamic.
+  const facilityId = "693e4cd7dbb31d28519de71b"; // Replace with a REAL ID from your DB
+  // Fetch facility details along with slots or once (for type, name, location)
+  const [facilityDetails, setFacilityDetails] = useState<FacilityDetails | null>(null);
+  
+  // Handler for multi-slot selection
+  const handleSlotClick = (slot: TimeSlot) => {
+    setSelectedSlots(prevSelected => {
+      const isAlreadySelected = prevSelected.some(s => s.time === slot.time);
+      if (isAlreadySelected) {
+        // If already selected, remove it
+        return prevSelected.filter(s => s.time !== slot.time);
+      } else {
+        // If not selected, add it
+        return [...prevSelected, slot];
+      }
+    });
+  };
 
-    setIsProcessing(true);
+  // Fetch user profile on component mount (for Booker name)
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await api.get('/auth/me');
+        if (response.data.success) {
+          setUserProfile(response.data.user);
+        }
+      } catch (err: any) { // Add ': any' for err type for consistent error handling
+        console.error("Failed to fetch user profile:", err);
+        const errorMessage = err.response?.data?.message || "Không thể tải thông tin người dùng.";
+        toast.error(errorMessage);
+        setUserProfile(null); // Ensure userProfile is null if fetch fails
+      }
+    };
+    fetchUserProfile();
+  }, []);
+
+  // Fetch stats on component mount
+  useEffect(() => {
+    const fetchStats = async () => {
+      setLoadingStats(true);
+      try {
+        const response = await api.get('/booking/history?type=all');
+        const userBookings: BookingStat[] = response.data;
+        
+        const approved = userBookings.filter(b => ['PAID', 'CONFIRMED', 'CHECKED_IN'].includes(b.status)).length;
+        const pending = userBookings.filter(b => b.status === 'PENDING_PAYMENT').length;
+        const cancelled = userBookings.filter(b => ['CANCELLED', 'FAILED'].includes(b.status)).length;
+        
+        setStats({
+          total: userBookings.length,
+          approved,
+          pending,
+          cancelled,
+        });
+      } catch (err) {
+        console.error("Failed to fetch booking stats:", err);
+        // Don't show a fatal error for stats, just default to 0
+        setStats({ total: 0, approved: 0, pending: 0, cancelled: 0 });
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  // Fetch available slots and facility details when date changes
+  useEffect(() => {
+    const fetchSlotsAndFacility = async () => {
+      setLoadingSlots(true);
+      setSelectedSlots([]); // Reset selection to empty array
+      try {
+        // Fetch facility details (assuming /facility/:id endpoint exists)
+        setFacilityDetails({
+          id: facilityId,
+          name: "Sân Cầu Lông B1",
+          type: "Badminton",
+          location: "Nhà thi đấu Thể thao, Cơ sở Dĩ An"
+        });
+
+        const dateString = selectedDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+        const response = await api.get(`/booking/availability/${facilityId}?date=${dateString}`);
+        setSlots(response.data);
+      } catch (err) {
+        toast.error("Không thể tải danh sách khung giờ. Vui lòng thử lại.");
+        console.error(err);
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+
+    fetchSlotsAndFacility();
+  }, [selectedDate, facilityId]);
+  
+  const handleConfirmBooking = async () => {
+    if (selectedSlots.length === 0) return;
+
+    setLoadingBooking(true);
 
     try {
-      // Dữ liệu booking giả lập (sau này sẽ connect với facility API thật)
-      const bookingData = {
-        facilityId: "mock-facility-id",
-        date: selectedDate.toISOString(),
-        timeSlot: slots[selectedSlot].time,
-        price: slots[selectedSlot].price,
+      // Create a payload that matches the backend's new CreateBookingDto
+      const bookingPayload = {
+        facilityId: facilityId,
+        bookingDate: selectedDate.toISOString().split('T')[0],
+        slots: selectedSlots.map(slot => ({
+          startTime: slot.start,
+          endTime: slot.end,
+          price: slot.price,
+        })),
       };
 
-      // Bước 1: Tạo booking (tạm thời skip - chưa có API)
-      // const bookingResponse = await api.post('/booking', bookingData);
-      // const bookingId = bookingResponse.data.booking.id;
+      // The endpoint is now back to /booking
+      const response = await api.post('/booking', bookingPayload);
+      
+      const { paymentUrl } = response.data;
 
-      // Tạm thời dùng mock bookingId
-      const mockBookingId = `BOOKING_${Date.now()}`;
+      if (paymentUrl) {
+        // Redirect the user to the payment gateway
+        window.location.href = paymentUrl;
+      } else {
+        // Fallback or error if no paymentUrl is received
+        toast.error("Không thể lấy được liên kết thanh toán. Vui lòng thử lại.");
+        setShowConfirm(false);
+      }
 
-      // Format date không dấu cho VNPay
-      const dateStr = selectedDate.toLocaleDateString('en-GB'); // DD/MM/YYYY
-
-      // Bước 2: Tạo payment
-      const paymentResponse = await api.post('/payment', {
-        type: 'booking',
-        referenceId: mockBookingId,
-        amount: slots[selectedSlot].price,
-        description: `Thanh toan dat san ngay ${dateStr} - ${slots[selectedSlot].time}`,
-      });
-
-      // Bước 3: Lấy URL VNPay
-      const paymentUrl = paymentResponse.data.payment.paymentUrl;
-
-      // Bước 4: Redirect sang VNPay
-      window.location.href = paymentUrl;
-
-    } catch (error: any) {
-      console.error('Lỗi khi đặt sân:', error);
-      alert(error.response?.data?.message || 'Có lỗi xảy ra khi đặt sân. Vui lòng thử lại.');
-      setIsProcessing(false);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || "Đã xảy ra lỗi khi tạo đơn đặt sân.";
+      toast.error(errorMessage);
+      setShowConfirm(false); // Close the modal on error
+    } finally {
+      setLoadingBooking(false);
     }
   };
+
+  const statCards = [
+    { id: 1, title: "Tổng số đơn đặt", value: loadingStats ? '--' : stats.total },
+    { id: 2, title: "Đơn đã duyệt", value: loadingStats ? '--' : stats.approved },
+    { id: 3, title: "Đơn đang xử lý", value: loadingStats ? '--' : stats.pending },
+    { id: 4, title: "Đơn bị hủy", value: loadingStats ? '--' : stats.cancelled },
+  ];
+
+  const totalOrderPrice = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
 
   return (
     <div className="flex flex-col gap-8 pt-4">
@@ -90,189 +204,126 @@ const Booking = () => {
         title="Đặt sân thể thao"
         subtitle="Chọn ngày và khung giờ để đặt sân"
       />
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((s) => (
-          <StatCard key={s.id} title={s.title} value={s.value} />
+    
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+        {statCards.map((s) => (
+          <StatCard key={s.id} title={s.title} value={s.value.toString()} />
         ))}
       </div>
 
-      {/* Lịch + Khung giờ */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Calendar */}
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
-          <h3 className="mb-4 flex items-center gap-2 text-base font-semibold text-gray-800">
-            <CalendarDays className="h-4 w-4 text-blue-500" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl border shadow-sm p-6">
+          <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2 mb-4">
+            <CalendarDays className="w-4 h-4 text-blue-500" />
             Chọn ngày đặt sân
           </h3>
-
           <div className="calendar-wrapper">
             <Calendar
               onChange={(value) => setSelectedDate(value as Date)}
               value={selectedDate}
               locale="vi-VN"
               minDate={new Date()}
+              maxDate={maxDate}
+              navigationLabel={({ label, view, date }) => {
+                if (label && label.length > 0) {
+                  return label.charAt(0).toUpperCase() + label.slice(1);
+                }
+                return label;
+              }}
             />
-          </div>
-
-          <div className="mt-4 flex items-center gap-2 rounded-md bg-blue-50 p-3 text-sm text-blue-700">
-            <CalendarDays className="h-4 w-4" />
-            Ngày đã chọn:{" "}
-            <span className="font-medium">
-              {selectedDate.toLocaleDateString("vi-VN", {
-                weekday: "long",
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-              })}
-            </span>
           </div>
         </div>
 
-        {/* Time slots */}
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
-          <h3 className="mb-4 flex items-center gap-2 text-base font-semibold text-gray-800">
-            <Clock className="h-4 w-4 text-blue-500" />
+        <div className="bg-white rounded-xl border shadow-sm p-6">
+          <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2 mb-4">
+            <Clock className="w-4 h-4 text-blue-500" />
             Chọn khung giờ
           </h3>
+          {loadingSlots ? (
+            <div className="flex items-center justify-center h-40">
+              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+            </div>
+          ) : !slots.length ? (
+             <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" /> Không thể tải danh sách khung giờ. Vui lòng thử lại.
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-3">
+              {slots.map((slot) => {
+                const isSelected = selectedSlots.some(s => s.time === slot.time); // Updated isSelected
+                const isBooked = slot.status === "booked";
+                const isMaintenance = slot.status === "maintenance";
 
-          <div className="grid grid-cols-3 gap-3">
-            {slots.map((slot, index) => {
-              const isSelected = selectedSlot === index;
-              const isBooked = slot.status === "booked";
-              const isMaintenance = slot.status === "maintenance";
+                // Check if the slot is in the past
+                const now = new Date();
+                const slotDateTime = new Date(selectedDate);
+                const [hours, minutes] = slot.start.split(':').map(Number);
+                slotDateTime.setHours(hours, minutes, 0, 0);
+                const isPast = slotDateTime < now;
 
-              return (
-                <button
-                  key={slot.time}
-                  onClick={() =>
-                    !isBooked && !isMaintenance && setSelectedSlot(index)
-                  }
-                  disabled={isBooked || isMaintenance}
-                  className={`rounded-md border py-2 text-sm font-medium transition ${
-                    isBooked
-                      ? "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400"
-                      : isMaintenance
-                        ? "cursor-not-allowed border-yellow-100 bg-yellow-50 text-yellow-700"
-                        : isSelected
-                          ? "border-blue-600 bg-blue-600 text-white"
-                          : "bg-gray-50 text-gray-700 hover:border-blue-400 hover:bg-blue-50"
-                  } `}
-                >
-                  {slot.time}
-                </button>
-              );
-            })}
-          </div>
-
-          {selectedSlot !== null && (
-            <div className="mt-4 flex items-center gap-2 rounded-md bg-blue-50 p-3 text-sm text-blue-700">
-              <CheckCircle2 className="h-4 w-4" />
-              Đã chọn khung giờ:{" "}
-              <span className="font-medium">{slots[selectedSlot].time}</span>
+                return (
+                  <button
+                    key={slot.time}
+                    onClick={() =>
+                      !isBooked && !isMaintenance && !isPast && handleSlotClick(slot) // Updated onClick
+                    }
+                    disabled={isBooked || isMaintenance || isPast}
+                    className={`py-2 text-sm border rounded-md transition font-medium ${isBooked || isPast ? "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200" : isMaintenance ? "bg-yellow-50 text-yellow-700 cursor-not-allowed border-yellow-100" : isSelected ? "bg-blue-600 text-white border-blue-600" : "bg-gray-50 text-gray-700 border-gray-300 hover:bg-blue-600 hover:text-white hover:border-blue-600"}`}
+                  >
+                    {slot.time}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {selectedSlots.length > 0 && (
+            <div className="mt-4 text-sm text-blue-700 bg-blue-50 p-3 rounded-md flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4" />
+              Đã chọn:{" "}
+              <span className="font-medium">{selectedSlots.length} khung giờ</span>
+            </div>
+          )}
+          {selectedSlots.length > 0 && !showConfirm && (
+            <div className="flex justify-center mt-6">
+              <button onClick={() => setShowConfirm(true)} className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition">
+                Đặt sân
+              </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* Modal xác nhận */}
-      {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="relative w-[400px] rounded-xl bg-white p-6 shadow-lg">
-            <h3 className="mb-1 text-lg font-semibold text-gray-800">
-              Xác nhận đặt sân
-            </h3>
-            <p className="mb-4 text-sm text-gray-500">
-              Vui lòng kiểm tra thông tin đặt sân trước khi xác nhận
-            </p>
-
-            <div className="space-y-2 text-sm text-gray-700">
-              <p>
-                <span className="font-medium text-gray-500">Ngày đặt:</span>{" "}
-                {selectedDate.toLocaleDateString("vi-VN", {
-                  weekday: "long",
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                })}
-              </p>
-              <p>
-                <span className="font-medium text-gray-500">Khung giờ:</span>{" "}
-                {selectedSlot !== null ? slots[selectedSlot].time : ""}
-              </p>
-              <p>
-                <span className="font-medium text-gray-500">Thời lượng:</span>{" "}
-                1.0 giờ
-              </p>
-              <p>
-                <span className="font-medium text-gray-500">Loại sân:</span> Sân
-                thể thao đa năng
-              </p>
+      {showConfirm && selectedSlots.length > 0 && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-lg w-[400px] p-6 relative">
+            <h3 className="text-lg font-semibold text-gray-800 mb-1">Thông tin đặt sân</h3>
+            <p className="text-sm text-gray-500 mb-4">Vui lòng kiểm tra thông tin trước khi xác nhận.</p>
+            <div className="space-y-3 text-sm text-gray-700 border-t border-b py-4">
+              <p><span className="font-medium text-gray-500">Người đặt:</span> {userProfile?.fullName || 'Đang tải...'}</p>
+              <p><span className="font-medium text-gray-500">Ngày đặt:</span> {selectedDate.toLocaleDateString("vi-VN")}</p>
+              <div className="space-y-1">
+                <p className="font-medium text-gray-500">Khung giờ đã chọn:</p>
+                <ul className="list-disc list-inside pl-2">
+                  {selectedSlots.map(slot => (
+                    <li key={slot.time}>{slot.time}</li>
+                  ))}
+                </ul>
+              </div>
+              <p><span className="font-medium text-gray-500">Vị trí sân:</span> {facilityDetails?.location || 'Đang tải...'}</p>
             </div>
-
-            <hr className="my-4" />
-
-            <div className="flex items-center justify-between text-base font-medium">
-              <span>Tổng thanh toán:</span>
-              <span className="text-blue-600">
-                {selectedSlot !== null
-                  ? slots[selectedSlot].price.toLocaleString("vi-VN")
-                  : 0}
-                đ
-              </span>
+            
+            <div class="flex flex-col items-center text-base font-medium mt-4">
+              <span class="text-gray-900">Tổng thanh toán:</span>
+              <span class="text-blue-600 text-xl font-bold mt-2">{totalOrderPrice.toLocaleString("vi-VN")}đ</span>
             </div>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                onClick={() => setShowConfirm(false)}
-                className="rounded-md border px-4 py-2 text-gray-600 hover:bg-gray-50"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleBookingSubmit}
-                disabled={isProcessing}
-                className="flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
-              >
-                {isProcessing ? (
-                  <>
-                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    Đang xử lý...
-                  </>
-                ) : (
-                  "Xác nhận đặt sân"
-                )}
+            <div class="flex justify-center gap-3 mt-6">
+              <button onClick={() => setShowConfirm(false)} className="px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50" disabled={loadingBooking}>Hủy</button>
+              <button onClick={handleConfirmBooking} className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 flex items-center gap-2" disabled={loadingBooking}>
+                {loadingBooking && <Loader2 className="w-4 h-4 animate-spin" />}
+                Thanh toán
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Nút đặt sân */}
-      {selectedSlot !== null && !showConfirm && (
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={() => setShowConfirm(true)}
-            className="rounded-md bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700"
-          >
-            Xác nhận đặt sân
-          </button>
         </div>
       )}
     </div>

@@ -1,4 +1,5 @@
 import { Outlet } from "react-router-dom";
+import { Toaster } from "sonner";
 
 import Header from "@/components/Client/Header";
 import SlideBar from "@/components/Client/SlideBar";
@@ -24,6 +25,7 @@ const ClientLayout = () => {
           <Outlet />
         </main>
       </div>
+      <Toaster richColors />
     </div>
   );
 };

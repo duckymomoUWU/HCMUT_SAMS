@@ -34,7 +34,14 @@ const processQueue = (error: Error | null, token: string | null = null) => {
 // Request interceptor - Add auth token
 api.interceptors.request.use(
   (config) => {
+    // If Authorization header is already set, it means the response interceptor has handled it (e.g., for a retried request)
+    if (config.headers?.Authorization) {
+      console.log(`Request Interceptor: Header already set for ${config.url}. Using existing token.`);
+      return config;
+    }
+    
     const token = localStorage.getItem("accessToken");
+    console.log(`Request Interceptor: Sending token for ${config.url}:`, token ? `Bearer ${token.substring(0, 10)}...` : 'No Token'); // ADDED LOG
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -49,10 +56,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
+    console.log("Axios response interceptor caught an error:", error.response?.status, error.config?.url);
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
     // If 401 error and haven't retried yet
     if (error.response?.status === 401 && !originalRequest._retry) {
+      console.log("Caught 401. Attempting to refresh token.");
       // If already refreshing, queue this request
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -73,20 +82,24 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Try to refresh the access token
         const newAccessToken = await authService.refreshAccessToken();
         
-        // Update the failed request with new token
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        // Use a clone of the original request to ensure headers are properly applied
+        const retriedRequest = { ...originalRequest };
+        if (!retriedRequest.headers) {
+          retriedRequest.headers = {};
         }
+        retriedRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        retriedRequest._retry = true; // Mark as retried
+        
+        console.log("Updated originalRequest headers for retry:", retriedRequest.headers.Authorization);
 
         // Process all queued requests with new token
         processQueue(null, newAccessToken);
         isRefreshing = false;
 
-        // Retry the original request
-        return api(originalRequest);
+        console.log("Retrying original request with updated token...");
+        return api(retriedRequest); // Use the cloned and updated request
       } catch (refreshError) {
         // Refresh failed - logout user
         processQueue(refreshError as Error, null);
