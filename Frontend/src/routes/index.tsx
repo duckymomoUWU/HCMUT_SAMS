@@ -18,7 +18,7 @@ import Booking from "../pages/Client/Booking";
 import BookingHistory from "../pages/Client/BookingHistory";
 import Profile from "../pages/Client/Profile";
 import EquipmentRental from "../pages/Client/EquipmentRental";
-import Payment from "../pages/Client/Payment";
+// import Payment from "../pages/Client/Payment";
 
 // Admin Pages
 import AdminDashboard from "../pages/Admin/Dashboard";
@@ -57,7 +57,7 @@ export const AppRoutes = () => {
         <Route path="booking-history" element={<BookingHistory />} />
         <Route path="profile" element={<Profile />} />
         <Route path="equipment-rental" element={<EquipmentRental />} />
-        <Route path="payment" element={<Payment />} />
+        {/* <Route path="payment" element={<Payment />} /> */}
       </Route>
 
       {/* Admin Routes - Protected with Admin Role */}

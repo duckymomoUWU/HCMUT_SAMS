@@ -3,41 +3,49 @@ import { Document, Types } from 'mongoose';
 
 export type EquipmentRentalDocument = EquipmentRental & Document;
 
+export enum EquipmentRentalStatus {
+  RENTING = 'renting',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+}
+
 @Schema({ timestamps: true })
 export class EquipmentRental {
-  // USER ID
+  // USER
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   userId: Types.ObjectId;
 
-  // EQUIPMENT ID
+  // EQUIPMENT (AGGREGATE)
   @Prop({ type: Types.ObjectId, ref: 'Equipment', required: true })
   equipmentId: Types.ObjectId;
 
-  // QUANTITY
-  @Prop({ required: true, min: 1 })
-  quantity: number;
+  // ITEM THỰC TẾ ĐƯỢC THUÊ
+  @Prop({
+    type: [{ type: Types.ObjectId, ref: 'EquipmentItem' }],
+    required: true,
+  })
+  items: Types.ObjectId[];
 
   // RENTAL DATE
   @Prop({ required: true })
   rentalDate: Date;
 
-  // DURATION
+  // HOURS
   @Prop({ required: true, min: 1 })
   duration: number;
 
-  // TOTAL PRICE
+  // TOTAL PRICE (CALCULATED)
   @Prop({ required: true, min: 0 })
   totalPrice: number;
 
   // STATUS
   @Prop({
-    type: String,
-    enum: ['renting', 'cancelled', 'completed'],
-    default: 'renting',
+    enum: Object.values(EquipmentRentalStatus),
+    default: EquipmentRentalStatus.RENTING,
   })
-  status: string;
+  status: EquipmentRentalStatus;
 
-  // Tạm thời bỏ ref Payment để không lỗi
+  // PAYMENT (OPTIONAL)
   @Prop({ type: Types.ObjectId })
   paymentId?: Types.ObjectId;
 }

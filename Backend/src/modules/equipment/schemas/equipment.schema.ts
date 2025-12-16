@@ -3,13 +3,6 @@ import { Document } from 'mongoose';
 
 export type EquipmentDocument = Equipment & Document;
 
-// EQUIPMENT STATUS
-export enum EquipmentStatus {
-  WORKING = 'working',          
-  MAINTENANCE = 'maintenance',  
-  BROKEN = 'broken',           
-}
-
 @Schema({ timestamps: true })
 export class Equipment {
   // NAME
@@ -18,27 +11,19 @@ export class Equipment {
 
   // TYPE (vợt, bóng, ...)
   @Prop({ required: true, index: true })
-  type: string; 
+  type: string;
 
-  // QUANTITY
-  @Prop({ required: true, min: 0 })
-  quantity: number; 
+  // TOTAL ITEM COUNT (CALCULATED)
+  @Prop({ required: true, default: 0, min: 0 })
+  quantity: number;
 
-  // AVAILABLE
-  @Prop({ default: true })
+  // TRUE nếu có ít nhất 1 EquipmentItem.status === 'available'
+  @Prop({ required: true, default: false })
   available: boolean;
-  
+
   // PRICE PER HOUR
   @Prop({ required: true, min: 0 })
-  pricePerHour: number; 
-
-  // STATUS
-  @Prop({
-    required: true,
-    enum: Object.values(EquipmentStatus),
-    default: EquipmentStatus.WORKING,
-  })
-  status: EquipmentStatus;
+  pricePerHour: number;
 
   // IMAGE
   @Prop({ required: true })
@@ -49,10 +34,5 @@ export class Equipment {
   description: string;
 }
 
-export const EquipmentSchema = SchemaFactory.createForClass(Equipment);
-
-// AVAILABLE IF QUANTITY > 0 AND STATUS WORKING
-EquipmentSchema.pre('save', function (next) {
-  this.available = this.quantity > 0 && this.status === EquipmentStatus.WORKING;
-  next();
-});
+export const EquipmentSchema =
+  SchemaFactory.createForClass(Equipment);
