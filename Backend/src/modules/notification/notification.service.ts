@@ -23,4 +23,22 @@ export class NotificationService {
   remove(id: number) {
     return `This action removes a #${id} notification`;
   }
+
+  // Placeholder method for booking confirmation
+  async sendConfirmation(userId: string, bookingId: string) {
+    console.log(`[NotificationService] Sending confirmation to User ID: ${userId} for Booking ID: ${bookingId}`);
+    // Implement actual notification logic here
+  }
+
+  // Placeholder method for booking failure
+  async sendFailure(userId: string, bookingId: string) {
+    console.log(`[NotificationService] Sending failure notification to User ID: ${userId} for Booking ID: ${bookingId}`);
+    // Implement actual notification logic here
+  }
+
+  // Placeholder method for cancellation confirmation
+  async sendCancellationConfirmation(payload: { userId: string; bookingId: string; reason?: string; refundAmount?: number; penaltyPointsApplied?: number }) {
+    console.log(`[NotificationService] Sending cancellation confirmation for User ID: ${payload.userId}, Booking ID: ${payload.bookingId}. Refund Amount: ${payload.refundAmount}. Penalty Points: ${payload.penaltyPointsApplied}`);
+    // Implement actual notification logic here
+  }
 }
