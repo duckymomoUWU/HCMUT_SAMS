@@ -88,8 +88,8 @@ const UsersManagement: React.FC = () => {
     },
     {
       id: 4,
-      title: "Tổng doanh thu",
-      value: "19,5M",
+      title: "Chưa kích hoạt",
+      value: String(users.filter((u) => u.status === "inactive").length),
       color: "text-indigo-600",
       icon: (
         <div className="p-2 bg-indigo-50 rounded-lg">
