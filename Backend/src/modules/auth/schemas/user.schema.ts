@@ -1,14 +1,16 @@
+// Backend/src/modules/auth/schemas/user.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose'; // Import Types
 
 export type UserDocument = User & Document;
 
 @Schema({ timestamps: true })
 export class User {
+  _id: Types.ObjectId; // Explicitly define _id
   @Prop({ required: true })
   fullName: string;
 
-  @Prop({ required: true, lowercase: true }) 
+  @Prop({ required: true, lowercase: true })
   email: string;
 
   @Prop()
@@ -55,10 +57,22 @@ export class User {
   penaltyPoints: number;
 
   @Prop()
-  penaltyExpiry?: Date;
+  penaltyLastResetDate?: Date;
+
+  @Prop({ default: false })
+  isBookingLocked: boolean;
+
+  @Prop()
+  lockUntilDate?: Date;
 
   @Prop({ default: false })
   deleted: boolean;
+
+  @Prop()
+  createdAt?: Date;
+
+  @Prop()
+  updatedAt?: Date;
 }
 export const UserSchema = SchemaFactory.createForClass(User);
 

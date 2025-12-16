@@ -21,11 +21,10 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'your-secret-key',
+        secret: configService.get<string>('JWT_SECRET') || 'FALLBACK_SECRET_KEY', // Cung cấp giá trị mặc định nếu env không có
         signOptions: {
-          expiresIn: '15m',
-        },
-      }),
+                                              expiresIn: configService.get('JWT_EXPIRATION', '15m'), // Lấy giá trị với mặc định trực tiếp từ ConfigService
+                                          },      }),
     }),
   ],
   controllers: [AuthController],

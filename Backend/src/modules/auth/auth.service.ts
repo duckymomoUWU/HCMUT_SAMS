@@ -1,3 +1,5 @@
+// Backend/src/modules/auth/auth.service.ts
+/* eslint-disable */
 import {
   Injectable,
   ConflictException,
@@ -10,6 +12,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { User, UserDocument } from './schemas/user.schema';
 import { EmailService } from './services/email.service';
+import { ConfigService } from '@nestjs/config'; // Import ConfigService
 import {
   RegisterDto,
   LoginDto,
@@ -17,6 +20,7 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
 } from './dto/auth.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class AuthService {
@@ -24,6 +28,7 @@ export class AuthService {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private jwtService: JwtService,
     private emailService: EmailService,
+    private configService: ConfigService, // Inject ConfigService
   ) {}
 
   // ========== REGISTER với OTP ==========
@@ -111,13 +116,15 @@ export class AuthService {
   // ========== LOGIN ==========
   async login(loginDto: LoginDto) {
     // 1. Tìm user
-    const user = await this.userModel.findOne({ email: loginDto.email });
+    // Chuyển email về chữ thường để đảm bảo tìm thấy user chính xác
+    const user = await this.userModel.findOne({ email: loginDto.email.toLowerCase() }).select('+password');
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // 2. Check đã verify chưa
-    if (!user.isVerified) {
+    // Chỉ chặn nếu user.isVerified được set tường minh là false
+    if (user.isVerified === false) {
       throw new UnauthorizedException('Please verify your email first');
     }
 
@@ -267,7 +274,7 @@ export class AuthService {
     try {
       // 1. Verify refresh token
       const payload = this.jwtService.verify(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       });
 
       // 2. Tìm user
@@ -289,7 +296,7 @@ export class AuthService {
 
       // 4. (Optional) Rotate refresh token - tạo refresh token mới
       const newRefreshToken = this.jwtService.sign(newPayload, {
-        secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
         expiresIn: '7d', // Refresh token hết hạn sau 7 ngày
       });
 
@@ -377,6 +384,31 @@ export class AuthService {
     };
   }
 
+  async getProfile(userId: string): Promise<UserDocument> {
+    console.log('AuthService: getProfile called with userId:', userId);
+    const user = await this.userModel.findById(userId).exec();
+    console.log('AuthService: findById result for userId', userId, ':', user ? 'Found' : 'Not Found');
+    if (!user) {
+      // This case should ideally not happen if the JWT is valid
+      throw new UnauthorizedException('User not found');
+    }
+    return user;
+  }
+
+  // ========== UPDATE PROFILE ==========
+  async updateProfile(userId: string, updateDto: Partial<UpdateProfileDto>): Promise<UserDocument> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { $set: updateDto },
+      { new: true },
+    ).exec();
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    return user;
+  }
+
   // ========== HELPER: Generate JWT Tokens ==========
   private generateTokens(user: UserDocument) {
     const payload = {
@@ -390,7 +422,7 @@ export class AuthService {
 
     // Refresh token (cần secret riêng + expiry khác)
     const refreshToken = this.jwtService.sign(payload, {
-      secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret-key',
+      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       expiresIn: '7d',
     });
 

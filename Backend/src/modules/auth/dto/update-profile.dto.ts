@@ -1,0 +1,13 @@
+// Backend/src/modules/auth/dto/update-profile.dto.ts
+import { IsString, IsOptional, IsNotEmpty } from 'class-validator';
+
+export class UpdateProfileDto {
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  fullName?: string;
+
+  @IsString()
+  @IsOptional()
+  phone?: string;
+}

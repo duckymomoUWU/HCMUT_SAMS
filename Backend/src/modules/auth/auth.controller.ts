@@ -1,3 +1,5 @@
+//backend/src/modules/auth/auth.controller.ts
+/* eslint-disable */
 import {
   Controller,
   Post,
@@ -8,6 +10,7 @@ import {
   Req,
   Res,
   UseGuards,
+  Patch,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
@@ -18,12 +21,61 @@ import {
   ResetPasswordDto,
   ResendOtpDto,
 } from './dto/auth.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto'; // Import DTO
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard'; // Ensure JwtAuthGuard is imported
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  // ========== GET CURRENT USER PROFILE ==========
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  @HttpCode(HttpStatus.OK)
+  async getProfile(@Req() req: any) {
+    // The req.user is populated by the JwtStrategy's validate method
+    const user = await this.authService.getProfile(req.user.id);
+    // Return a sanitized user object
+    return {
+      success: true,
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        createdAt: user.createdAt,
+        penaltyPoints: user.penaltyPoints,
+        isVerified: user.isVerified,
+        avatarUrl: user.avatarUrl,
+      },
+    };
+  }
+  
+  // ========== UPDATE CURRENT USER PROFILE ==========
+  @UseGuards(JwtAuthGuard)
+  @Patch('me')
+  @HttpCode(HttpStatus.OK)
+  async updateProfile(@Req() req: any, @Body() updateDto: UpdateProfileDto) {
+    const user = await this.authService.updateProfile(req.user.id, updateDto);
+    return {
+      success: true,
+      message: 'Profile updated successfully!',
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        createdAt: user.createdAt,
+        penaltyPoints: user.penaltyPoints,
+        isVerified: user.isVerified,
+        avatarUrl: user.avatarUrl,
+      },
+    };
+  }
 
   // ========== REGISTER ==========
   @Public()
@@ -32,7 +84,9 @@ export class AuthController {
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
-
+  
+  // ... (rest of the controller remains the same)
+  
   // ========== VERIFY OTP ==========
   @Public()
   @Post('verify-otp')
