@@ -18,7 +18,6 @@ export interface CreateRentalData {
   quantity: number;
   rentalDate: string;
   duration: number;
-  totalPrice: number;
 }
 
 class EquipmentRentalService {

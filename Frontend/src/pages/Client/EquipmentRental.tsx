@@ -6,6 +6,7 @@ import {
   Minus,
   CheckCircle2,
   X,
+  Loader2,
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
 import { type Equipment } from "@/services/equipmentService";
@@ -34,9 +35,14 @@ interface CartItem {
   hours: number;
 }
 
+// Số lượng thực tế
+interface EquipmentWithStock extends Equipment {
+  realStock: number;
+}
+
 const EquipmentRental = () => {
   const navigate = useNavigate();
-  const [equipments, setEquipments] = useState<Equipment[]>([]);
+  const [equipments, setEquipments] = useState<EquipmentWithStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("Tất cả");
@@ -44,27 +50,49 @@ const EquipmentRental = () => {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
-  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(
-    null,
-  );
+  const [selectedEquipment, setSelectedEquipment] =
+    useState<EquipmentWithStock | null>(null);
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0],
   );
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
 
+  // Fetch cả Equipment và Item để tính tồn kho thực tế
   useEffect(() => {
-    const fetchEquipments = async () => {
+    const fetchData = async () => {
       try {
-        const data = await equipmentService.getEquipments();
-        setEquipments(data);
+        setLoading(true);
+        const [equipmentData, itemsData] = await Promise.all([
+          equipmentService.getEquipments(),
+          equipmentService.getEquipmentItems(),
+        ]);
+
+        // Merge data để tính realStock
+        const mergedData = equipmentData.map((eq) => {
+          // Đếm số item có status = 'available' thuộc về equipment này
+          const availableCount = itemsData.filter((item) => {
+            const itemEqId =
+              typeof item.equipment === "object" && item.equipment !== null
+                ? (item.equipment as any)._id
+                : item.equipment;
+            return itemEqId === eq._id && item.status === "available";
+          }).length;
+
+          return {
+            ...eq,
+            realStock: availableCount,
+          };
+        });
+
+        setEquipments(mergedData);
       } catch (error) {
         console.error("Failed to fetch equipments:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchEquipments();
+    fetchData();
   }, []);
 
   const categories = ["Tất cả", ...new Set(equipments.map((e) => e.type))];
@@ -75,7 +103,7 @@ const EquipmentRental = () => {
       e.name.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const openRentalModal = (equipment: Equipment) => {
+  const openRentalModal = (equipment: EquipmentWithStock) => {
     setSelectedEquipment(equipment);
     setSelectedDate(new Date().toISOString().split("T")[0]);
     setSelectedTimeSlot("");
@@ -83,10 +111,15 @@ const EquipmentRental = () => {
     setShowModal(true);
   };
 
-  // Add to cart after selecting date/time/quantity
   const addToCart = () => {
     if (!selectedEquipment || !selectedDate || !selectedTimeSlot) {
       alert("Vui lòng chọn đầy đủ ngày giờ!");
+      return;
+    }
+
+    // Check realStock
+    if (quantity > selectedEquipment.realStock) {
+      alert(`Kho chỉ còn ${selectedEquipment.realStock} thiết bị khả dụng.`);
       return;
     }
 
@@ -115,9 +148,11 @@ const EquipmentRental = () => {
     }
     const item = cart[index];
     const equipment = equipments.find((e) => e._id === item.id);
-    if (equipment && newQuantity > equipment.quantity) {
+
+    // Check realStock
+    if (equipment && newQuantity > equipment.realStock) {
       alert(
-        `Chỉ còn ${equipment.quantity} thiết bị. Không thể chọn ${newQuantity}!`,
+        `Chỉ còn ${equipment.realStock} thiết bị. Không thể chọn ${newQuantity}!`,
       );
       return;
     }
@@ -146,7 +181,6 @@ const EquipmentRental = () => {
         try {
           const decoded = decodeJWT(token);
           userId = decoded.sub || decoded.id || decoded._id;
-          console.log("User ID from token:", userId);
         } catch (e) {
           console.error("Failed to decode token:", e);
         }
@@ -155,11 +189,9 @@ const EquipmentRental = () => {
       if (!userId) {
         const userData = JSON.parse(localStorage.getItem("user") || "{}");
         userId = userData?._id;
-        console.log("User ID from localStorage:", userId);
       }
 
       if (!userId) {
-        console.error("Could not find user ID");
         alert("Vui lòng đăng nhập!");
         return;
       }
@@ -172,33 +204,28 @@ const EquipmentRental = () => {
           quantity: item.quantity,
           rentalDate: item.rentalDate,
           duration: item.hours,
-          totalPrice:
-            equipments.find((e) => e._id === item.id)!.pricePerHour *
-            item.quantity *
-            item.hours,
         };
         return equipmentRentalService.createRental(data);
       });
 
       const rentals = await Promise.all(rentalPromises);
 
-      console.log("Created rentals:", rentals);
-
-      if (!rentals[0]?._id) {
+      if (!rentals || rentals.length === 0 || !rentals[0]?._id) {
         throw new Error("Failed to get rental ID from response");
       }
 
       // Navigate to payment
       const rentalId = rentals[0]._id;
       const paymentUrl = `/client/payment?rentalId=${rentalId}&total=${total}`;
-      console.log("Navigating to:", paymentUrl);
       navigate(paymentUrl);
 
       setShowConfirm(false);
       setCart([]);
     } catch (error: any) {
       console.error("Failed to create rental:", error);
-      alert(`Có lỗi xảy ra khi thuê thiết bị!\n${error.message || ""}`);
+      alert(
+        `Có lỗi xảy ra khi thuê thiết bị!\n${error.response?.data?.message || error.message || ""}`,
+      );
     }
   };
 
@@ -246,7 +273,10 @@ const EquipmentRental = () => {
 
           {/* Grid thiết bị */}
           {loading ? (
-            <div className="py-8 text-center">Đang tải...</div>
+            <div className="flex items-center justify-center gap-2 py-8 text-center">
+              <Loader2 className="h-5 w-5 animate-spin text-blue-600" /> Đang
+              tải kho...
+            </div>
           ) : (
             <div className="grid grid-cols-2 gap-5 md:grid-cols-3 xl:grid-cols-4">
               {filteredEquipments.map((item) => (
@@ -256,9 +286,9 @@ const EquipmentRental = () => {
                 >
                   <div>
                     <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-lg border bg-gray-50">
-                      <ShoppingCart className="h-6 w-6 text-gray-400" />
+                      {<ShoppingCart className="h-6 w-6 text-gray-400" />}
                     </div>
-                    <h3 className="text-sm font-semibold text-gray-900">
+                    <h3 className="line-clamp-1 text-sm font-semibold text-gray-900">
                       {item.name}
                     </h3>
                     <p className="line-clamp-2 text-xs text-gray-700">
@@ -267,16 +297,26 @@ const EquipmentRental = () => {
                     <p className="mt-1 text-sm font-semibold text-gray-900">
                       {item.pricePerHour.toLocaleString("vi-VN")} đ/giờ
                     </p>
-                    <p className="mt-1 text-xs text-gray-600">
-                      Còn {item.quantity} thiết bị
+                    {/* Hiển thị realStock */}
+                    <p
+                      className={`mt-1 text-xs font-medium ${item.realStock > 0 ? "text-green-600" : "text-red-500"}`}
+                    >
+                      {item.realStock > 0
+                        ? `Còn sẵn: ${item.realStock}`
+                        : "Hết hàng"}
                     </p>
                   </div>
 
                   <button
                     onClick={() => openRentalModal(item)}
-                    className="mt-3 w-full rounded-md bg-blue-600 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+                    disabled={item.realStock === 0}
+                    className={`mt-3 w-full rounded-md py-2 text-sm font-medium text-white transition ${
+                      item.realStock > 0
+                        ? "bg-blue-600 hover:bg-blue-700"
+                        : "cursor-not-allowed bg-gray-300"
+                    }`}
                   >
-                    Chọn thuê
+                    {item.realStock > 0 ? "Chọn thuê" : "Hết hàng"}
                   </button>
                 </div>
               ))}
@@ -448,7 +488,7 @@ const EquipmentRental = () => {
                   <button
                     onClick={() =>
                       setQuantity(
-                        Math.min(selectedEquipment.quantity, quantity + 1),
+                        Math.min(selectedEquipment.realStock, quantity + 1),
                       )
                     }
                     className="px-3 py-2 text-gray-600 hover:bg-gray-100"
@@ -456,8 +496,9 @@ const EquipmentRental = () => {
                     <Plus className="h-4 w-4" />
                   </button>
                 </div>
+                {/* Hiển thị realStock */}
                 <p className="mt-1 text-xs text-gray-500">
-                  Có {selectedEquipment.quantity} thiết bị
+                  Có {selectedEquipment.realStock} thiết bị
                 </p>
               </div>
 
