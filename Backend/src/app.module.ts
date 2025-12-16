@@ -13,7 +13,8 @@ import { NotificationModule } from './modules/notification/notification.module';
 import { HistoryModule } from './modules/history/history.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ScheduleModule } from '@nestjs/schedule';
-import { EquipmentRentalModule } from './modules/equipmentRental/equipmentRental.module';
+import { EquipmentRentalModule } from './modules/equipment-Rental/equipmentRental.module';
+import { EquipmentItemModule } from './modules/equipment-item/equipment-item.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { EquipmentRentalModule } from './modules/equipmentRental/equipmentRental
     HistoryModule,
     AdminModule,
     EquipmentRentalModule,
+    EquipmentItemModule,
   ],
   controllers: [AppController],
   providers: [AppService],
