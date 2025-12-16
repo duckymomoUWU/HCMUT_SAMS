@@ -78,56 +78,21 @@ const BookingHistory = () => {
     fetchRentals();
   }, []);
 
-  // Mock data - dữ liệu mẫu
-  const mockBookings = [
-    {
-      id: 1,
-      type: "booking",
-      name: "Sân Tennis A1",
-      date: "2024-11-15",
-      time: "14:00 - 15:00",
-      price: 180000,
-      status: "Đã duyệt",
-      statusColor: "green",
-    },
-    {
-      id: 2,
-      type: "equipment",
-      name: "Vợt cầu lông + Quả cầu",
-      date: "2024-11-10",
-      time: "10:00 - 12:00",
-      price: 17000,
-      status: "Đã thanh toán",
-      statusColor: "blue",
-    },
-    {
-      id: 3,
-      type: "booking",
-      name: "Sân Futsal B2",
-      date: "2024-10-28",
-      time: "18:00 - 19:00",
-      price: 200000,
-      status: "Hoàn thành",
-      statusColor: "gray",
-    },
-    {
-      id: 4,
-      type: "booking",
-      name: "Sân Bóng rổ C1",
-      date: "2024-10-20",
-      time: "16:00 - 17:00",
-      price: 150000,
-      status: "Đã hủy",
-      statusColor: "red",
-    },
-  ];
-
   const rentalBookings = rentals.map((rental) => {
-    const equipment = equipmentMap[rental.equipmentId];
-    // Extract equipment name - handle if equipment is object
+    // Handle populated equipmentId - it can be string or object
     let equipmentName = "Thiết bị";
-    if (equipment && typeof equipment === "object" && "name" in equipment) {
-      equipmentName = (equipment as any).name;
+    let equipment: any = null;
+    
+    if (typeof rental.equipmentId === "object" && rental.equipmentId !== null) {
+      // equipmentId is populated object
+      equipment = rental.equipmentId;
+      equipmentName = equipment.name || "Thiết bị";
+    } else if (typeof rental.equipmentId === "string") {
+      // equipmentId is just a string ID, look up in equipmentMap
+      equipment = equipmentMap[rental.equipmentId];
+      if (equipment && typeof equipment === "object" && "name" in equipment) {
+        equipmentName = (equipment as any).name;
+      }
     }
 
     // Format date - properly parse ISO date
@@ -179,14 +144,12 @@ const BookingHistory = () => {
   // Separate upcoming and history bookings
   const today = new Date().toISOString().split("T")[0];
   const upcomingBookings = rentalBookings.filter(
-    (booking) => booking.rawDate && booking.rawDate >= today,
+    (booking) => booking.rawDate && booking.rawDate >= today && booking.rentalStatus === "renting",
   );
-  const historyBookings = [
-    ...mockBookings,
-    ...rentalBookings.filter(
-      (booking) => !booking.rawDate || booking.rawDate < today,
-    ),
-  ];
+  // Only show real rental data, no mock data
+  const historyBookings = rentalBookings.filter(
+    (booking) => booking.rentalStatus !== "renting" || (booking.rawDate && booking.rawDate < today),
+  );
 
   const filteredBookings =
     activeTab === "upcoming" ? upcomingBookings : historyBookings;

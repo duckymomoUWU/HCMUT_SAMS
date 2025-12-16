@@ -9,13 +9,16 @@ import { Model, Types } from 'mongoose';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { Payment, PaymentDocument } from './entities/payment.entity';
 import { VNPayHelper } from './vnpay.helper';
+import { EquipmentRental, EquipmentRentalDocument } from '../equipmentRental/schemas/equipmentRental.schema';
 
 @Injectable()
 export class PaymentService {
   constructor(
     @InjectModel(Payment.name)
     private paymentModel: Model<PaymentDocument>,
-    private configService: ConfigService, // ← Inject ConfigService
+    @InjectModel(EquipmentRental.name)
+    private rentalModel: Model<EquipmentRentalDocument>,
+    private configService: ConfigService,
   ) {}
 
   // 1. TẠO PAYMENT VÀ VNPAY URL
@@ -112,6 +115,15 @@ export class PaymentService {
       payment.vnpayTransactionNo = data.vnp_TransactionNo;
       payment.vnpayResponseCode = responseCode;
       payment.bankCode = data.vnp_BankCode;
+
+      // Update EquipmentRental's paymentId if this is equipment-rental payment
+      if (payment.type === 'equipment-rental' && payment.referenceId) {
+        await this.rentalModel.findByIdAndUpdate(
+          payment.referenceId,
+          { paymentId: payment._id },
+          { new: true }
+        );
+      }
     } else {
       // Thanh toán thất bại
       payment.status = 'failed';

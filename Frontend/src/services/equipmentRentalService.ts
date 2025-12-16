@@ -1,15 +1,25 @@
 import api from "./api";
 
+// Equipment object from populated response
+export interface PopulatedEquipment {
+  _id: string;
+  name: string;
+  type: string;
+  pricePerHour: number;
+}
+
 export interface EquipmentRental {
   _id: string;
   userId: string;
-  equipmentId: string;
+  equipmentId: string | PopulatedEquipment; // Can be string or populated object
   quantity: number;
   rentalDate: string;
   duration: number;
   totalPrice: number;
   status: "renting" | "cancelled" | "completed";
   paymentId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CreateRentalData {

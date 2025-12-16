@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   User,
   Mail,
@@ -10,8 +10,10 @@ import {
   Edit,
   Key,
   Link as LinkIcon,
+  Loader2,
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
+import userService, { type UserProfile } from "@/services/userService";
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState<
@@ -19,26 +21,80 @@ const Profile = () => {
   >("info");
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
 
-  // Mock user data
+  // User data từ API
   const [userData, setUserData] = useState({
-    name: "Nguyễn Văn A",
-    email: "student@hcmut.edu.vn",
-    phone: "0123456789",
+    name: "",
+    email: "",
+    phone: "",
     role: "Sinh viên",
-    violations: 2,
-    memberSince: "3 tháng",
-    totalBookings: 12,
-    equipmentRentals: 8,
+    violations: 0,
+    memberSince: "",
+    totalBookings: 0,
+    equipmentRentals: 0,
   });
 
   // Store original user data for cancel functionality
   const [originalUserData, setOriginalUserData] = useState(userData);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const profile = await userService.getProfile();
+        const stats = await userService.getDashboardStats();
+        
+        // Tính thời gian thành viên
+        const createdAt = new Date(profile.createdAt);
+        const now = new Date();
+        const diffMonths = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24 * 30));
+        const memberSince = diffMonths < 1 ? "Mới" : `${diffMonths} tháng`;
+
+        const newUserData = {
+          name: profile.fullName,
+          email: profile.email,
+          phone: profile.phone || "",
+          role: profile.role === "admin" ? "Quản trị viên" : "Sinh viên",
+          violations: profile.penaltyPoints || 0,
+          memberSince,
+          totalBookings: stats.bookingsThisMonth,
+          equipmentRentals: stats.activeRentals,
+        };
+        
+        setUserData(newUserData);
+        setOriginalUserData(newUserData);
+      } catch (error) {
+        console.error("Failed to fetch profile:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    try {
+      await userService.updateProfile({
+        fullName: userData.name,
+        phone: userData.phone,
+      });
+      setOriginalUserData(userData);
+      setIsEditing(false);
+      alert("Cập nhật thông tin thành công!");
+    } catch (error: any) {
+      console.error("Failed to update profile:", error);
+      alert(error.response?.data?.message || "Có lỗi xảy ra khi cập nhật thông tin");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const violations = [
     {
@@ -65,6 +121,14 @@ const Profile = () => {
     { points: 3, rule: "Không đến sân sau khi đặt (no-show)" },
     { points: 5, rule: "Vi phạm nghiêm trọng quy định sử dụng sân" },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8 pt-4">
@@ -197,6 +261,9 @@ const Profile = () => {
                     <input
                       type="tel"
                       value={userData.phone}
+                      onChange={(e) =>
+                        setUserData({ ...userData, phone: e.target.value })
+                      }
                       disabled={!isEditing}
                       className="w-full rounded-md border bg-white py-2 pr-3 pl-9 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-50"
                     />
@@ -226,14 +293,17 @@ const Profile = () => {
                       setUserData(originalUserData);
                       setIsEditing(false);
                     }}
-                    className="rounded-md border px-4 py-2 text-sm text-black transition hover:bg-gray-50"
+                    disabled={saving}
+                    className="rounded-md border px-4 py-2 text-sm text-black transition hover:bg-gray-50 disabled:opacity-50"
                   >
                     Hủy
                   </button>
                   <button
-                    onClick={() => setIsEditing(false)}
-                    className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+                    onClick={handleSaveProfile}
+                    disabled={saving}
+                    className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
                   >
+                    {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                     Lưu thay đổi
                   </button>
                 </div>

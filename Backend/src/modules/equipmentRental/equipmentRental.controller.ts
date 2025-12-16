@@ -25,11 +25,14 @@ import {
     }
   
     // ===================================
-    // GET ALL
-    // GET /equipment-rental
+    // GET ALL or GET BY USER
+    // GET /equipment-rental or GET /equipment-rental?userId=xxx
     // ===================================
     @Get()
-    findAll() {
+    async findAllOrByUser(@Query('userId') userId?: string) {
+      if (userId) {
+        return this.equipmentRentalService.findByUser(userId);
+      }
       return this.equipmentRentalService.findAll();
     }
   
@@ -61,14 +64,6 @@ import {
     @Delete(':id')
     remove(@Param('id') id: string) {
       return this.equipmentRentalService.remove(id);
-    }
-
-    // GET /equipment-rental?userId=xxx
-    @Get()
-    async getRentalsByUser(
-      @Query('userId') userId: string,
-    ) {
-      return this.equipmentRentalService.findByUser(userId);
     }
   }
   
