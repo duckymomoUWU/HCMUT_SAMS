@@ -1,5 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
-import authService from './authService';
+import { store } from "@/store/Store";
+import authService from "./authService";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -34,7 +35,14 @@ const processQueue = (error: Error | null, token: string | null = null) => {
 // Request interceptor - Add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("accessToken");
+    const state = store.getState();
+    const token = state.auth.accessToken || localStorage.getItem("accessToken");
+    console.log(
+      "Request to:",
+      config.url,
+      "Token:",
+      token ? "✓ Found" : "✗ Not found",
+    );
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -49,7 +57,9 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+    };
 
     // If 401 error and haven't retried yet
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -75,7 +85,7 @@ api.interceptors.response.use(
       try {
         // Try to refresh the access token
         const newAccessToken = await authService.refreshAccessToken();
-        
+
         // Update the failed request with new token
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
@@ -91,10 +101,10 @@ api.interceptors.response.use(
         // Refresh failed - logout user
         processQueue(refreshError as Error, null);
         isRefreshing = false;
-        
+
         authService.logout();
         window.location.href = "/login";
-        
+
         return Promise.reject(refreshError);
       }
     }

@@ -5,7 +5,7 @@ import { setAccessToken, clearState } from "@/store/authSlice";
 const api = axios.create({
   baseURL:
     import.meta.env.MODE === "development"
-      ? "http://localhost:5001/api"
+      ? "http://localhost:5000/api"
       : "/api",
   withCredentials: true,
 });
