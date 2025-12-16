@@ -14,6 +14,8 @@ import { HistoryModule } from './modules/history/history.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { UsersModule } from './modules/users/users.module';
+import { EquipmentRentalModule } from './modules/equipmentRental/equipmentRental.module';
+
 
 @Module({
   imports: [
@@ -48,6 +50,7 @@ import { UsersModule } from './modules/users/users.module';
     HistoryModule,
     AdminModule,
     UsersModule,
+    EquipmentRentalModule,
   ],
   controllers: [AppController],
   providers: [AppService],

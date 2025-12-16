@@ -21,9 +21,10 @@ export class PaymentController {
 
   // API 1: Tạo payment mới
   // POST /payment
+  @UseGuards(JwtAuthGuard)
   @Post()
   createPayment(@Body() createPaymentDto: CreatePaymentDto, @Req() req) {
-    const userId = req.user.userId;
+    const userId = req.user.userId || req.user.sub || req.user._id;
     const ipAddr = req.ip || req.connection.remoteAddress;
 
     return this.paymentService.createPayment(createPaymentDto, userId, ipAddr);

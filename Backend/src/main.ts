@@ -25,11 +25,11 @@ async function bootstrap() {
   );
 
   // Enable Global Guards (Authentication & Authorization)
-  const reflector = app.get(Reflector);
-  app.useGlobalGuards(
-    new JwtAuthGuard(reflector), // 1. Kiểm tra JWT token trước
-    new RolesGuard(reflector), // 2. Kiểm tra role sau
-  );
+  // const reflector = app.get(Reflector);
+  // app.useGlobalGuards(
+  //   new JwtAuthGuard(reflector), // 1. Kiểm tra JWT token trước
+  //   new RolesGuard(reflector), // 2. Kiểm tra role sau
+  // );
 
   await app.listen(process.env.PORT ?? 5000);
   console.log(
