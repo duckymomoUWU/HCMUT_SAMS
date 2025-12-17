@@ -5,8 +5,7 @@ import { User, UserDocument } from '../auth/schemas/user.schema';
 import {
   EquipmentRental,
   EquipmentRentalDocument,
-} from '../equipmentRental/schemas/equipmentRental.schema';
-
+} from '../equipment-Rental/schemas/equipment-rental.schema';
 @Injectable()
 export class UsersService {
   constructor(

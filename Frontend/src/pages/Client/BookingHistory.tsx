@@ -6,8 +6,11 @@ import {
   XCircle,
   Clock,
   DollarSign,
-  RefreshCw,
+  Package,
+  History,
   AlertCircle,
+  Info,
+  Hash,
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
 import equipmentRentalService, {
@@ -16,187 +19,180 @@ import equipmentRentalService, {
 import equipmentService, { type Equipment } from "@/services/equipmentService";
 import { decodeJWT } from "@/utils/jwt";
 
+interface PopulatedEquipmentRental
+  extends Omit<EquipmentRental, "equipmentId"> {
+  equipmentId: string | Equipment;
+  items?: Array<{
+    _id: string;
+    status: string;
+    serialNumber?: string;
+  }>;
+  createdAt?: string;
+}
+
 const BookingHistory = () => {
-  const [activeTab, setActiveTab] = useState<"upcoming" | "history">("history");
+  const [activeTab, setActiveTab] = useState<"upcoming" | "history">(
+    "upcoming",
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("Tất cả");
-  const [rentals, setRentals] = useState<EquipmentRental[]>([]);
+  const [rentals, setRentals] = useState<PopulatedEquipmentRental[]>([]);
   const [equipmentMap, setEquipmentMap] = useState<{
     [key: string]: Equipment;
   }>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null); // ← FIX 2: Thêm error state
   const [selectedRental, setSelectedRental] = useState<any>(null);
+
   useEffect(() => {
     const fetchRentals = async () => {
       try {
-        // Get userId
-        const token = localStorage.getItem("accessToken");
-        let userId: string | null = null;
+        setLoading(true);
+        setError(null); // Reset error
+        
+        // ✅ FIX 1: Dùng getMyRentals() thay vì getUserRentals()
+        console.log("🔵 Fetching my rentals...");
+        const data = await equipmentRentalService.getMyRentals();
+        console.log("✅ Rentals fetched:", data);
 
-        if (token) {
-          try {
-            const decoded = decodeJWT(token);
-            userId = decoded.sub || decoded.id || decoded._id;
-            console.log("User ID from token:", userId);
-          } catch (e) {
-            console.error("Failed to decode token:", e);
-          }
-        }
+        // SẮP XẾP: Đưa đơn mới nhất lên đầu
+        const sortedData = data.sort((a: any, b: any) => {
+          const dateA = new Date(a.createdAt || 0).getTime();
+          const dateB = new Date(b.createdAt || 0).getTime();
+          return dateB - dateA;
+        });
 
-        if (!userId) {
-          const user = JSON.parse(localStorage.getItem("user") || "{}");
-          userId = user._id;
-          console.log("User ID from localStorage:", userId);
-        }
+        setRentals(sortedData as unknown as PopulatedEquipmentRental[]);
 
-        if (userId) {
-          console.log("Fetching rentals for user:", userId);
-          const data = await equipmentRentalService.getUserRentals(userId);
-          console.log("Fetched rentals:", data);
-          setRentals(data);
-          // Fetch all equipment
-          try {
-            const allEquipment = await equipmentService.getEquipments();
-            const map: { [key: string]: Equipment } = {};
-            allEquipment.forEach((eq) => {
-              map[eq._id] = eq;
-            });
-            setEquipmentMap(map);
-            console.log("Equipment map:", map);
-          } catch (error) {
-            console.error("Failed to fetch equipment:", error);
-          }
-        } else {
-          console.error("No user ID found");
-        }
-      } catch (error) {
-        console.error("Failed to fetch rentals:", error);
+        // Fetch equipment data để map
+        console.log("🔵 Fetching equipment data...");
+        const allEquipment = await equipmentService.getEquipments();
+        const map: { [key: string]: Equipment } = {};
+        allEquipment.forEach((eq) => {
+          map[eq._id] = eq;
+        });
+        setEquipmentMap(map);
+        console.log("✅ Equipment map created");
+
+      } catch (error: any) {
+        console.error("❌ Failed to fetch rentals:", error);
+        setError(error.response?.data?.message || "Không thể tải dữ liệu");
       } finally {
         setLoading(false);
       }
     };
+    
     fetchRentals();
   }, []);
 
+  // --- XỬ LÝ DỮ LIỆU ---
   const rentalBookings = rentals.map((rental) => {
-    // Handle populated equipmentId - it can be string or object
-    let equipmentName = "Thiết bị";
-    let equipment: any = null;
-    
+    // Get equipment info
+    let equipment: Equipment | undefined;
     if (typeof rental.equipmentId === "object" && rental.equipmentId !== null) {
-      // equipmentId is populated object
-      equipment = rental.equipmentId;
-      equipmentName = equipment.name || "Thiết bị";
-    } else if (typeof rental.equipmentId === "string") {
-      // equipmentId is just a string ID, look up in equipmentMap
-      equipment = equipmentMap[rental.equipmentId];
-      if (equipment && typeof equipment === "object" && "name" in equipment) {
-        equipmentName = (equipment as any).name;
-      }
+      equipment = rental.equipmentId as unknown as Equipment;
+    } else {
+      equipment = equipmentMap[rental.equipmentId as string];
     }
+    const equipmentName = equipment?.name || "Thiết bị không xác định";
 
-    // Format date - properly parse ISO date
-    const dateStr =
-      typeof rental.rentalDate === "string"
-        ? rental.rentalDate.split("T")[0]
-        : rental.rentalDate;
-    const rentalDateTime = new Date(dateStr + "T00:00:00");
+    // Format date
+    const rentalDateTime = new Date(rental.rentalDate);
     const formattedDate = rentalDateTime.toLocaleDateString("vi-VN", {
-      year: "numeric",
-      month: "2-digit",
       day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
     });
 
-    // Calculate time range based on duration (2-hour slots)
+    // Calculate time range (assuming start at 8:00)
     const startHour = 8;
     const endHour = startHour + rental.duration;
     const timeRange = `${String(startHour).padStart(2, "0")}:00 - ${String(endHour).padStart(2, "0")}:00`;
 
+    // ✅ FIX 3: Quantity = số lượng items thực tế
+    const actualQuantity = rental.items?.length || rental.quantity || 1;
+
+    // Check if all items returned (status = available)
+    const areItemsReturned =
+      rental.items &&
+      rental.items.length > 0 &&
+      rental.items.every((item) => item.status === "available");
+
+    // Determine final status
+    let finalStatus = rental.status;
+    if (finalStatus === "renting" && areItemsReturned) {
+      finalStatus = "completed";
+    }
+
+    // Map status to display text and color
+    let statusText = "Chờ xử lý";
+    let statusColor = "gray";
+
+    switch (finalStatus) {
+      case "renting":
+        statusText = "Đang thuê";
+        statusColor = "blue";
+        break;
+      case "completed":
+        statusText = "Đã trả";
+        statusColor = "green";
+        break;
+      case "cancelled":
+        statusText = "Đã hủy";
+        statusColor = "red";
+        break;
+      default:
+        statusText = finalStatus;
+    }
+
     return {
       id: rental._id,
+      shortId: rental._id.slice(-6).toUpperCase(),
       type: "equipment-rental",
-      name: `Thuê thiết bị - ${equipmentName}`,
+      name: `Thuê: ${equipmentName}`,
       equipmentName,
       date: formattedDate,
-      rawDate: dateStr,
       time: timeRange,
-      price: rental.totalPrice,
-      quantity: rental.quantity,
+      totalPrice: rental.totalPrice,
+      quantity: actualQuantity, // ← FIX 3
       duration: rental.duration,
-      status:
-        rental.status === "renting"
-          ? "Đang thuê"
-          : rental.status === "completed"
-            ? "Đã trả"
-            : "Quá hạn",
-      statusColor:
-        rental.status === "renting"
-          ? "blue"
-          : rental.status === "completed"
-            ? "green"
-            : "red",
-      rentalStatus: rental.status,
+      status: statusText,
+      statusColor: statusColor,
+      rentalStatus: finalStatus,
       equipment,
-      rental,
+      items: rental.items || [],
+      createdAt: rental.createdAt,
     };
   });
 
-  // Separate upcoming and history bookings
-  const today = new Date().toISOString().split("T")[0];
+  // Filter by tab
   const upcomingBookings = rentalBookings.filter(
-    (booking) => booking.rawDate && booking.rawDate >= today && booking.rentalStatus === "renting",
+    (b) => b.rentalStatus === "renting",
   );
-  // Only show real rental data, no mock data
   const historyBookings = rentalBookings.filter(
-    (booking) => booking.rentalStatus !== "renting" || (booking.rawDate && booking.rawDate < today),
+    (b) => b.rentalStatus === "completed" || b.rentalStatus === "cancelled",
   );
-
   const filteredBookings =
     activeTab === "upcoming" ? upcomingBookings : historyBookings;
 
+  // Filter by search and status
   const filteredByStatus = filteredBookings.filter(
     (booking) =>
       (filterStatus === "Tất cả" || booking.status === filterStatus) &&
       (booking.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.date.includes(searchTerm)),
+        booking.shortId.includes(searchTerm.toUpperCase())),
   );
 
-  console.log("Bookings:", {
-    upcoming: upcomingBookings,
-    history: historyBookings,
-  });
-
-  const statusOptions = [
-    "Tất cả",
-    "Chờ duyệt",
-    "Đã duyệt",
-    "Chờ thanh toán",
-    "Đã thanh toán",
-    "Đã check-in",
-    "Hoàn thành",
-    "Đã hủy",
-    "Hết hạn",
-    "Đang thuê",
-    "Đã trả",
-    "Quá hạn",
-  ];
+  const statusOptions = ["Tất cả", "Đang thuê", "Đã trả", "Đã hủy"];
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "Đã duyệt":
-      case "Đã thanh toán":
       case "Đã trả":
         return <CheckCircle2 className="h-4 w-4" />;
-      case "Chờ duyệt":
-      case "Chờ thanh toán":
       case "Đang thuê":
         return <Clock className="h-4 w-4" />;
       case "Đã hủy":
-      case "Hết hạn":
-      case "Quá hạn":
         return <XCircle className="h-4 w-4" />;
-      case "Hoàn thành":
-        return <CheckCircle2 className="h-4 w-4" />;
       default:
         return <AlertCircle className="h-4 w-4" />;
     }
@@ -206,7 +202,6 @@ const BookingHistory = () => {
     const colors = {
       green: "bg-green-50 text-green-700 border-green-200",
       blue: "bg-blue-50 text-blue-700 border-blue-200",
-      yellow: "bg-yellow-50 text-yellow-700 border-yellow-200",
       red: "bg-red-50 text-red-700 border-red-200",
       gray: "bg-gray-50 text-gray-700 border-gray-200",
     };
@@ -216,11 +211,11 @@ const BookingHistory = () => {
   return (
     <div className="flex flex-col gap-8 pt-4">
       <PageHeader
-        title="Lịch sử đặt chỗ"
-        subtitle="Quản lý và theo dõi tất cả đơn đặt sân và thuê thiết bị"
+        title="Lịch sử thuê đồ"
+        subtitle="Quản lý và theo dõi các đơn thuê thiết bị thể thao"
       />
 
-      {/* Tabs */}
+      {/* TABS */}
       <div className="flex gap-4 border-b">
         <button
           onClick={() => setActiveTab("upcoming")}
@@ -230,7 +225,7 @@ const BookingHistory = () => {
               : "text-gray-600 hover:text-gray-900"
           }`}
         >
-          Sắp tới ({upcomingBookings.length})
+          Đang thuê ({upcomingBookings.length})
         </button>
         <button
           onClick={() => setActiveTab("history")}
@@ -244,17 +239,17 @@ const BookingHistory = () => {
         </button>
       </div>
 
-      {/* Tìm kiếm và bộ lọc */}
+      {/* FILTER BAR */}
       <div className="rounded-xl border bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row">
           <div className="relative flex-1">
             <Search className="absolute top-2.5 left-3 h-4 w-4 text-gray-500" />
             <input
               type="text"
-              placeholder="Tìm kiếm theo mã booking hoặc thiết bị..."
+              placeholder="Tìm kiếm theo tên hoặc mã đơn..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-md border bg-white py-2 pr-3 pl-9 text-sm text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full rounded-md border bg-white py-2 pr-3 pl-9 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
           </div>
 
@@ -272,16 +267,40 @@ const BookingHistory = () => {
         </div>
       </div>
 
-      {/* Xem lịch sử thuê và lịch thuê sắp tới */}
+      {/* MAIN LIST */}
       <div className="space-y-4">
-        {filteredByStatus.length === 0 ? (
-          <div className="rounded-xl border bg-white p-8 text-center shadow-sm">
-            <Calendar className="mx-auto mb-4 h-16 w-16 text-gray-300" />
-            <p className="text-lg text-gray-600">Không có booking nào</p>
+        {/* ✅ FIX 2: Error state */}
+        {error ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+            <AlertCircle className="mx-auto mb-3 h-12 w-12 text-red-400" />
+            <p className="text-lg font-medium text-red-900">Có lỗi xảy ra</p>
+            <p className="mt-1 text-sm text-red-600">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+            >
+              Tải lại
+            </button>
+          </div>
+        ) : loading ? (
+          <div className="py-8 text-center text-gray-500">
+            <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
+            Đang tải dữ liệu...
+          </div>
+        ) : filteredByStatus.length === 0 ? (
+          <div className="rounded-xl border bg-white p-12 text-center shadow-sm">
+            <History className="mx-auto mb-4 h-12 w-12 text-gray-300" />
+            <p className="text-lg font-medium text-gray-900">
+              {searchTerm || filterStatus !== "Tất cả"
+                ? "Không tìm thấy kết quả phù hợp"
+                : activeTab === "upcoming"
+                  ? "Bạn chưa có đơn thuê nào đang hoạt động"
+                  : "Bạn chưa có lịch sử thuê thiết bị"}
+            </p>
             <p className="mt-2 text-sm text-gray-500">
               {activeTab === "upcoming"
-                ? "Bạn chưa có lịch đặt sân hoặc thuê thiết bị nào sắp tới"
-                : "Bạn chưa có lịch sử đặt sân hoặc thuê thiết bị nào"}
+                ? "Hãy đến trang thuê thiết bị để bắt đầu!"
+                : "Các đơn đã hoàn thành sẽ hiển thị tại đây"}
             </p>
           </div>
         ) : (
@@ -293,8 +312,12 @@ const BookingHistory = () => {
               <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                 <div className="flex-1">
                   <div className="mb-2 flex items-center gap-3">
-                    <h3 className="text-lg font-semibold text-gray-900">
+                    <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+                      <Package className="h-5 w-5 text-blue-600" />
                       {booking.name}
+                      <span className="text-xs font-normal text-gray-400">
+                        #{booking.shortId}
+                      </span>
                     </h3>
                     <span
                       className={`flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium ${getStatusColorClass(
@@ -306,185 +329,164 @@ const BookingHistory = () => {
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-700">
+                  <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <Hash className="h-4 w-4 text-gray-400" />
+                      <span>SL: {booking.quantity}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-gray-400" />
                       <span>{booking.date}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-gray-500" />
-                      <span>{booking.time}</span>
+                      <Clock className="h-4 w-4 text-gray-400" />
+                      <span>
+                        {booking.time} ({booking.duration}h)
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-gray-500" />
+                      <DollarSign className="h-4 w-4 text-gray-400" />
                       <span className="font-medium text-gray-900">
-                        {booking.price.toLocaleString("vi-VN")} đ
+                        {booking.totalPrice.toLocaleString("vi-VN")} đ
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  {booking.status === "Đã duyệt" && (
-                    <button className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700">
-                      Thanh toán
-                    </button>
-                  )}
-                  {booking.status === "Hoàn thành" && (
-                    <button className="flex items-center gap-2 rounded-md border px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-50">
-                      <RefreshCw className="h-4 w-4" />
-                      Đặt lại
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setSelectedRental(booking)}
-                    className="rounded-md border px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-50"
-                  >
-                    Xem chi tiết
-                  </button>
-                </div>
+                <button
+                  onClick={() => setSelectedRental(booking)}
+                  className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                >
+                  Xem chi tiết
+                </button>
               </div>
             </div>
           ))
         )}
       </div>
 
-      {/* Xem chi tiết lượt thuê */}
+      {/* CHI TIẾT MODAL */}
       {selectedRental && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-lg">
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Chi tiết đơn thuê
+        <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 duration-200">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white shadow-xl">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b p-6">
+              <h2 className="text-xl font-bold text-gray-900">
+                Chi tiết đơn thuê{" "}
+                <span className="text-base font-normal text-gray-400">
+                  #{selectedRental.shortId}
+                </span>
               </h2>
               <button
                 onClick={() => setSelectedRental(null)}
-                className="text-gray-500 transition hover:text-gray-700"
+                className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
               >
-                ✕
+                <XCircle className="h-6 w-6" />
               </button>
             </div>
 
-            <div className="space-y-6">
-              {/* Basic Info */}
-              <div className="rounded-lg bg-gray-50 p-4">
-                <h3 className="mb-4 font-semibold text-gray-900">
-                  Thông tin cơ bản
+            <div className="space-y-6 p-6">
+              {/* Thông tin chính */}
+              <div className="grid grid-cols-2 gap-4 rounded-lg bg-gray-50 p-4">
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase">
+                    Thiết bị
+                  </p>
+                  <p className="mt-1 font-medium text-gray-900">
+                    {selectedRental.equipmentName}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase">
+                    Trạng thái
+                  </p>
+                  <span
+                    className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold ${getStatusColorClass(selectedRental.statusColor)}`}
+                  >
+                    {selectedRental.status}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase">
+                    Số lượng
+                  </p>
+                  <p className="mt-1 font-medium text-gray-900">
+                    {selectedRental.quantity} cái
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase">
+                    Thời lượng
+                  </p>
+                  <p className="mt-1 font-medium text-gray-900">
+                    {selectedRental.duration} giờ
+                  </p>
+                </div>
+              </div>
+
+              {/* Chi tiết items */}
+              <div>
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-gray-900">
+                  <Info className="h-4 w-4 text-blue-500" /> Danh sách thiết bị
+                  cụ thể
                 </h3>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <p className="text-sm text-gray-600">Thiết bị</p>
-                    <p className="font-medium text-gray-900">
-                      {selectedRental.equipmentName}
-                    </p>
+                {selectedRental.items && selectedRental.items.length > 0 ? (
+                  <div className="max-h-40 divide-y overflow-y-auto rounded-lg border">
+                    {selectedRental.items.map((item: any, idx: number) => (
+                      <div
+                        key={item._id || idx}
+                        className="flex justify-between p-3 text-sm"
+                      >
+                        <span className="text-gray-600">
+                          Mã thiết bị #{idx + 1}
+                        </span>
+                        <span className="font-mono font-medium text-gray-800">
+                          {item.serialNumber ||
+                            item._id.slice(-6).toUpperCase()}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Trạng thái</p>
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium ${getStatusColorClass(
-                        selectedRental.statusColor,
-                      )}`}
-                    >
-                      {getStatusIcon(selectedRental.status)}
-                      {selectedRental.status}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Số lượng</p>
-                    <p className="font-medium text-gray-900">
-                      {selectedRental.quantity}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Thời lượng thuê</p>
-                    <p className="font-medium text-gray-900">
-                      {selectedRental.duration} giờ
-                    </p>
-                  </div>
-                </div>
+                ) : (
+                  <p className="rounded-lg border border-dashed bg-gray-50 p-3 text-sm text-gray-500 italic">
+                    Chưa có thông tin thiết bị cụ thể (Đang chờ giao đồ)
+                  </p>
+                )}
               </div>
 
-              {/* Schedule Info */}
-              <div className="rounded-lg bg-gray-50 p-4">
-                <h3 className="mb-4 font-semibold text-gray-900">Lịch thuê</h3>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <p className="text-sm text-gray-600">Ngày thuê</p>
-                    <p className="font-medium text-gray-900">
-                      {selectedRental.date}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Thời gian</p>
-                    <p className="font-medium text-gray-900">
-                      {selectedRental.time}
-                    </p>
-                  </div>
+              {/* Thông tin thời gian & Giá */}
+              <div className="space-y-3 border-t pt-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Ngày thuê</span>
+                  <span className="font-medium text-gray-900">
+                    {selectedRental.date}
+                  </span>
                 </div>
-              </div>
-
-              {/* Equipment Details */}
-              {selectedRental.equipment && (
-                <div className="rounded-lg bg-gray-50 p-4">
-                  <h3 className="mb-4 font-semibold text-gray-900">
-                    Chi tiết thiết bị
-                  </h3>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <p className="text-sm text-gray-600">Loại thiết bị</p>
-                      <p className="font-medium text-gray-900">
-                        {(selectedRental.equipment as any).type || "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Giá/giờ</p>
-                      <p className="font-medium text-gray-900">
-                        {(
-                          (selectedRental.equipment as any).pricePerHour || 0
-                        ).toLocaleString("vi-VN")}{" "}
-                        đ
-                      </p>
-                    </div>
-                  </div>
-                  {(selectedRental.equipment as any).description && (
-                    <div className="mt-4">
-                      <p className="text-sm text-gray-600">Mô tả</p>
-                      <p className="text-gray-900">
-                        {(selectedRental.equipment as any).description}
-                      </p>
-                    </div>
-                  )}
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Khung giờ</span>
+                  <span className="font-medium text-gray-900">
+                    {selectedRental.time}
+                  </span>
                 </div>
-              )}
-
-              {/* Price Info */}
-              <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
-                <h3 className="mb-4 font-semibold text-gray-900">Tổng cộng</h3>
-                <div className="flex items-baseline justify-between">
-                  <span className="text-gray-600">Thành tiền:</span>
-                  <span className="text-3xl font-bold text-blue-600">
-                    {(selectedRental.price || 0).toLocaleString("vi-VN")} đ
+                <div className="flex items-center justify-between pt-2">
+                  <span className="font-bold text-gray-900">
+                    Tổng thanh toán
+                  </span>
+                  <span className="text-2xl font-bold text-blue-600">
+                    {selectedRental.totalPrice.toLocaleString("vi-VN")} đ
                   </span>
                 </div>
               </div>
+            </div>
 
-              {/* Rental ID */}
-              <div className="rounded-lg bg-gray-50 p-4">
-                <p className="text-sm text-gray-600">Mã đơn thuê</p>
-                <p className="font-mono text-sm font-medium text-gray-900">
-                  {selectedRental.id}
-                </p>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setSelectedRental(null)}
-                  className="flex-1 rounded-md bg-gray-200 px-4 py-2 font-medium text-gray-900 transition hover:bg-gray-300"
-                >
-                  Đóng
-                </button>
-              </div>
+            {/* Footer */}
+            <div className="flex justify-end bg-gray-50 p-4">
+              <button
+                onClick={() => setSelectedRental(null)}
+                className="rounded-lg border border-gray-300 bg-white px-6 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
+              >
+                Đóng
+              </button>
             </div>
           </div>
         </div>

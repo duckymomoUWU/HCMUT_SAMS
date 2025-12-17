@@ -14,7 +14,8 @@ import { HistoryModule } from './modules/history/history.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { UsersModule } from './modules/users/users.module';
-import { EquipmentRentalModule } from './modules/equipmentRental/equipmentRental.module';
+import { EquipmentRentalModule } from './modules/equipment-Rental/equipmentRental.module';
+import { EquipmentItemModule } from './modules/equipment-item/equipment-item.module';
 
 
 @Module({
@@ -51,6 +52,7 @@ import { EquipmentRentalModule } from './modules/equipmentRental/equipmentRental
     AdminModule,
     UsersModule,
     EquipmentRentalModule,
+    EquipmentItemModule,
   ],
   controllers: [AppController],
   providers: [AppService],

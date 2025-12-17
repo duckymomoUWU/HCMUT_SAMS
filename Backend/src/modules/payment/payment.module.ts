@@ -3,8 +3,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { PaymentService } from './payment.service';
 import { PaymentController } from './payment.controller';
 import { Payment, PaymentSchema } from './entities/payment.entity';
-import { EquipmentRental, EquipmentRentalSchema } from '../equipmentRental/schemas/equipmentRental.schema';
-
+import {
+  EquipmentRental,
+  EquipmentRentalSchema,
+} from '../equipment-Rental/schemas/equipment-rental.schema';
 @Module({
   imports: [
     MongooseModule.forFeature([

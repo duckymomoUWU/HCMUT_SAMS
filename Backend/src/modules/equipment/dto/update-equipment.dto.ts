@@ -1,4 +1,24 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateEquipmentDto } from './create-equipment.dto';
+import { IsString, IsNumber, IsOptional, Min } from 'class-validator';
 
-export class UpdateEquipmentDto extends PartialType(CreateEquipmentDto) {}
+export class UpdateEquipmentDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  type?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  pricePerHour?: number;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+}

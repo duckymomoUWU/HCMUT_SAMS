@@ -1,51 +1,59 @@
-import api from "./api";
-
-// Equipment object from populated response
-export interface PopulatedEquipment {
-  _id: string;
-  name: string;
-  type: string;
-  pricePerHour: number;
-}
+import api from "@/lib/Axios";
 
 export interface EquipmentRental {
   _id: string;
   userId: string;
-  equipmentId: string | PopulatedEquipment; // Can be string or populated object
-  quantity: number;
+  equipmentId: {
+    _id: string;
+    name: string;
+    type: string;
+    imageUrl: string;
+    pricePerHour: number;
+  };
+  items: string[]; // Array of EquipmentItem IDs
   rentalDate: string;
-  duration: number;
+  duration: number; // hours
   totalPrice: number;
-  status: "renting" | "cancelled" | "completed";
+  status: "renting" | "completed" | "cancelled";
   paymentId?: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
-export interface CreateRentalData {
-  userId: string;
+export interface CreateRentalDTO {
   equipmentId: string;
-  quantity: number;
-  rentalDate: string;
-  duration: number;
+  items: string[]; // Array of selected item IDs
+  rentalDate: Date;
+  duration: number; // number of hours
   totalPrice: number;
 }
 
 class EquipmentRentalService {
-  async createRental(data: CreateRentalData): Promise<EquipmentRental> {
-    const response = await api.post<EquipmentRental>("/equipment-rental", data);
+  async createRental(data: CreateRentalDTO): Promise<{ rental: EquipmentRental }> {
+    const response = await api.post("/equipment-rental", data);
     return response.data;
   }
 
-  async getUserRentals(userId: string): Promise<EquipmentRental[]> {
-    const response = await api.get<EquipmentRental[]>(
-      `/equipment-rental?userId=${userId}`,
-    );
+  async getMyRentals(): Promise<EquipmentRental[]> {
+    const response = await api.get("/equipment-rental/my-rentals");
     return response.data;
   }
 
-  async returnEquipment(id: string): Promise<void> {
-    await api.patch(`/equipment-rental/status/${id}`, { status: "completed" });
+  async getRentalById(id: string): Promise<EquipmentRental> {
+    const response = await api.get(`/equipment-rental/${id}`);
+    return response.data;
+  }
+
+  async cancelRental(id: string): Promise<EquipmentRental> {
+    const response = await api.patch(`/equipment-rental/${id}/cancel`);
+    return response.data;
+  }
+
+  async extendRental(id: string, additionalHours: number): Promise<EquipmentRental> {
+    const response = await api.patch(`/equipment-rental/${id}/extend`, {
+      additionalHours,
+    });
+    return response.data;
   }
 }
 

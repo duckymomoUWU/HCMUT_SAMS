@@ -1,30 +1,27 @@
-import { IsString, IsNotEmpty, IsEnum, IsNumber, Min, IsUrl } from "class-validator";
-import { EquipmentStatus } from "../schemas/equipment.schema";
+import { IsString, IsNumber, IsOptional, Min, IsUrl } from 'class-validator';
 
 export class CreateEquipmentDto {
-    @IsString()
-    @IsNotEmpty()
-    name: string;
+  @IsString()
+  name: string;
 
-    @IsString()
-    @IsNotEmpty()
-    type: string;
+  @IsString()
+  type: string;
 
-    @IsNumber()
-    @Min(0)
-    quantity: number;
+  @IsNumber()
+  @Min(0)
+  pricePerHour: number;
 
-    @IsNumber()
-    @Min(0)
-    pricePerHour: number;
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
 
-    @IsEnum(EquipmentStatus)
-    status: EquipmentStatus;
+  @IsOptional()
+  @IsString()
+  description?: string;
 
-    @IsUrl()
-    imageUrl: string;
-
-    @IsString()
-    @IsNotEmpty()
-    description: string;
+  // THÊM: Số lượng items ban đầu (optional)
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  initialQuantity?: number;
 }

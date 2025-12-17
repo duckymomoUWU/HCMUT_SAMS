@@ -2,9 +2,8 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 import { User, UserDocument } from '../schemas/user.schema';
-
+import { Model, Types } from 'mongoose';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
@@ -37,7 +36,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     // 4. Return user object → Gắn vào request.user
     return {
-      userId: user._id,
+      userId: (user._id as Types.ObjectId).toString(),
       email: user.email,
       role: user.role,
       fullName: user.fullName,

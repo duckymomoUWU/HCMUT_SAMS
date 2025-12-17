@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
 } from '@nestjs/common';
+
 import { EquipmentService } from './equipment.service';
 import { CreateEquipmentDto } from './dto/create-equipment.dto';
 import { UpdateEquipmentDto } from './dto/update-equipment.dto';
@@ -15,48 +16,50 @@ import { UpdateEquipmentDto } from './dto/update-equipment.dto';
 export class EquipmentController {
   constructor(private readonly equipmentService: EquipmentService) {}
 
-  // ============================
-  // CREATE 
-  // POST /equipment
-  // ============================
+  // equipment
   @Post()
-  create(@Body() createEquipmentDto: CreateEquipmentDto) {
-    return this.equipmentService.create(createEquipmentDto);
+  create(@Body() dto: CreateEquipmentDto) {
+    return this.equipmentService.create(dto);
   }
 
-  // ============================
-  // GET ALL 
-  // GET /equipment
-  // ============================
+  // equipment
   @Get()
   findAll() {
     return this.equipmentService.findAll();
   }
 
-  // ============================
-  // GET ONE 
-  // GET /equipment/:id
-  // ============================
+  // equipment/:id
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.equipmentService.findOne(id);
   }
 
-  // ============================
-  // UPDATE 
-  // PATCH /equipment/:id
-  // ============================
+  // equipment/:id
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateEquipmentDto: UpdateEquipmentDto) {
-    return this.equipmentService.update(id, updateEquipmentDto);
+  update(@Param('id') id: string, @Body() dto: UpdateEquipmentDto) {
+    return this.equipmentService.update(id, dto);
   }
 
-  // ============================
-  // DELETE 
-  // DELETE /equipment/:id
-  // ============================
+  // equipment/:id
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.equipmentService.remove(id);
+  }
+
+  // equipment/with-items/:id
+  @Get('with-items/:id')
+  findWithItems(@Param('id') id: string) {
+    return this.equipmentService.findWithItems(id);
+  }
+  // ✅ THÊM: Thêm items vào equipment
+  @Post(':id/add-items')
+  addItems(@Param('id') id: string, @Body('count') count: number) {
+    return this.equipmentService.addItems(id, count);
+  }
+
+  // ✅ THÊM: Sync items theo quantity trong database
+  @Post(':id/sync-items')
+  syncItems(@Param('id') id: string) {
+    return this.equipmentService.syncItems(id);
   }
 }

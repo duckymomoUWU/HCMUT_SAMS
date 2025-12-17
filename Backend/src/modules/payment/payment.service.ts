@@ -9,7 +9,11 @@ import { Model, Types } from 'mongoose';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { Payment, PaymentDocument } from './entities/payment.entity';
 import { VNPayHelper } from './vnpay.helper';
-import { EquipmentRental, EquipmentRentalDocument } from '../equipmentRental/schemas/equipmentRental.schema';
+import {
+  EquipmentRental,
+  EquipmentRentalDocument,
+} from '../equipment-Rental/schemas/equipment-rental.schema';
+import { EquipmentRentalStatus } from '../equipment-Rental/schemas/equipment-rental.schema';
 
 @Injectable()
 export class PaymentService {
@@ -25,16 +29,24 @@ export class PaymentService {
   async createPayment(
     createPaymentDto: CreatePaymentDto,
     userId: string,
-    ipAddr: string, // IP của user (cần cho VNPay)
+    ipAddr: string,
   ) {
+    console.log('🔵 Creating payment:', {
+      type: createPaymentDto.type,
+      referenceId: createPaymentDto.referenceId,
+      amount: createPaymentDto.amount,
+      userId,
+    });
+
     // Tạo order ID unique
     const orderId = `ORDER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // Validate và convert referenceId nếu cần
     let referenceId: Types.ObjectId | string = createPaymentDto.referenceId;
-    // Chỉ convert sang ObjectId nếu là valid ObjectId string (24 hex characters)
-    if (Types.ObjectId.isValid(createPaymentDto.referenceId) && 
-        createPaymentDto.referenceId.length === 24) {
+    if (
+      Types.ObjectId.isValid(createPaymentDto.referenceId) &&
+      createPaymentDto.referenceId.length === 24
+    ) {
       referenceId = new Types.ObjectId(createPaymentDto.referenceId);
     }
 
@@ -55,6 +67,12 @@ export class PaymentService {
 
     await payment.save();
 
+    console.log('✅ Payment created in DB:', {
+      id: payment._id,
+      orderId: payment.orderId,
+      type: payment.type,
+    });
+
     // Lấy config VNPay từ .env
     const vnpayConfig = {
       tmnCode: this.configService.get<string>('VNPAY_TMN_CODE') || '',
@@ -67,10 +85,12 @@ export class PaymentService {
     const paymentUrl = VNPayHelper.createPaymentUrl(vnpayConfig, {
       amount: createPaymentDto.amount,
       orderInfo:
-        createPaymentDto.description || `Thanh toán ${createPaymentDto.type}`,
+        createPaymentDto.description || `Thanh toan ${createPaymentDto.type}`,
       orderId: orderId,
       ipAddr: ipAddr || '127.0.0.1',
     });
+
+    console.log('🔗 VNPay URL generated:', paymentUrl);
 
     return {
       success: true,
@@ -80,19 +100,23 @@ export class PaymentService {
         orderId: payment.orderId,
         amount: payment.amount,
         status: payment.status,
-        paymentUrl, // ← URL để redirect user sang VNPay
       },
+      paymentUrl, // ← Frontend cần field này ở root level
     };
   }
 
   // 2. XỬ LÝ CALLBACK TỪ VNPAY
   async handleVNPayReturn(query: any) {
-    const hashSecret = this.configService.get<string>('VNPAY_HASH_SECRET') || '';
+    console.log('🔵 VNPay callback received:', query);
+
+    const hashSecret =
+      this.configService.get<string>('VNPAY_HASH_SECRET') || '';
 
     // Verify chữ ký
     const { isValid, data } = VNPayHelper.verifyReturnUrl(query, hashSecret);
 
     if (!isValid) {
+      console.error('❌ Invalid VNPay signature');
       throw new BadRequestException('Invalid signature');
     }
 
@@ -102,8 +126,15 @@ export class PaymentService {
     });
 
     if (!payment) {
+      console.error('❌ Payment not found:', data.vnp_TxnRef);
       throw new NotFoundException('Payment not found');
     }
+
+    console.log('✅ Payment found:', {
+      id: payment._id,
+      type: payment.type,
+      referenceId: payment.referenceId,
+    });
 
     // Kiểm tra response code từ VNPay
     const responseCode = data.vnp_ResponseCode;
@@ -116,18 +147,51 @@ export class PaymentService {
       payment.vnpayResponseCode = responseCode;
       payment.bankCode = data.vnp_BankCode;
 
-      // Update EquipmentRental's paymentId if this is equipment-rental payment
-      if (payment.type === 'equipment-rental' && payment.referenceId) {
-        await this.rentalModel.findByIdAndUpdate(
+      console.log('✅ Payment successful');
+
+      // ✅ FIX 1: Support cả "rental" và "equipment-rental"
+      // ✅ FIX 2: Update cả paymentId VÀ status
+      if(payment.type === 'equipment-rental' && payment.referenceId) {
+        console.log('🔵 Updating rental status...');
+
+        const updatedRental = await this.rentalModel.findByIdAndUpdate(
           payment.referenceId,
-          { paymentId: payment._id },
-          { new: true }
+          {
+            paymentId: payment._id,
+            status: EquipmentRentalStatus.RENTING, // ← Chuyển sang "renting"
+          },
+          { new: true },
         );
+
+        if (updatedRental) {
+          console.log('✅ Rental updated:', {
+            id: updatedRental._id,
+            status: updatedRental.status,
+            paymentId: updatedRental.paymentId,
+          });
+        } else {
+          console.warn('⚠️ Rental not found:', payment.referenceId);
+        }
       }
     } else {
       // Thanh toán thất bại
       payment.status = 'failed';
       payment.vnpayResponseCode = responseCode;
+
+      console.error('❌ Payment failed:', {
+        responseCode,
+        orderId: payment.orderId,
+      });
+
+      // Optional: Cancel rental if payment failed
+      if (
+        (payment.type === 'rental' || payment.type === 'equipment-rental') &&
+        payment.referenceId
+      ) {
+        await this.rentalModel.findByIdAndUpdate(payment.referenceId, {
+          status: EquipmentRentalStatus.CANCELLED,
+        });
+      }
     }
 
     await payment.save();

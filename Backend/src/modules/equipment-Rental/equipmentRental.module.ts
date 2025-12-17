@@ -1,30 +1,37 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+
 import { EquipmentRentalService } from './equipmentRental.service';
 import { EquipmentRentalController } from './equipmentRental.controller';
 
 import {
   EquipmentRental,
   EquipmentRentalSchema,
-} from './schemas/equipmentRental.schema';
+} from './schemas/equipment-rental.schema';
 
-import { Equipment, EquipmentSchema } from '../equipment/schemas/equipment.schema';
-import { User, UserSchema } from '../auth/schemas/user.schema';
+import {
+  EquipmentItem,
+  EquipmentItemSchema,
+} from '../equipment-item/schemas/equipment-item.schema';
+
+import {
+  Equipment,
+  EquipmentSchema,
+} from '../equipment/schemas/equipment.schema';
+
+import { EquipmentModule } from '../equipment/equipment.module';
 
 @Module({
   imports: [
+    EquipmentModule,
     MongooseModule.forFeature([
       { name: EquipmentRental.name, schema: EquipmentRentalSchema },
-    ]),
-    MongooseModule.forFeature([
+      { name: EquipmentItem.name, schema: EquipmentItemSchema },
       { name: Equipment.name, schema: EquipmentSchema },
-    ]),
-    MongooseModule.forFeature([
-      { name: User.name, schema: UserSchema },
     ]),
   ],
   controllers: [EquipmentRentalController],
   providers: [EquipmentRentalService],
-  exports: [EquipmentRentalService],
+  exports: [EquipmentRentalService, MongooseModule],
 })
 export class EquipmentRentalModule {}
