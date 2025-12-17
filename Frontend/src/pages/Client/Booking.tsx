@@ -312,11 +312,11 @@ const Booking = () => {
               <p><span className="font-medium text-gray-500">Vị trí sân:</span> {facilityDetails?.location || 'Đang tải...'}</p>
             </div>
             
-            <div class="flex flex-col items-center text-base font-medium mt-4">
-              <span class="text-gray-900">Tổng thanh toán:</span>
-              <span class="text-blue-600 text-xl font-bold mt-2">{totalOrderPrice.toLocaleString("vi-VN")}đ</span>
+            <div className="flex flex-col items-center text-base font-medium mt-4">
+              <span className="text-gray-900">Tổng thanh toán:</span>
+              <span className="text-blue-600 text-xl font-bold mt-2">{totalOrderPrice.toLocaleString("vi-VN")}đ</span>
             </div>
-            <div class="flex justify-center gap-3 mt-6">
+            <div className="flex justify-center gap-3 mt-6">
               <button onClick={() => setShowConfirm(false)} className="px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50" disabled={loadingBooking}>Hủy</button>
               <button onClick={handleConfirmBooking} className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 flex items-center gap-2" disabled={loadingBooking}>
                 {loadingBooking && <Loader2 className="w-4 h-4 animate-spin" />}

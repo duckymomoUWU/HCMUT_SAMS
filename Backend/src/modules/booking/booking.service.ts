@@ -255,9 +255,6 @@ export class BookingService {
   // =========================================================================
   // 6. Logic Hủy Đặt Sân
   // =========================================================================
-  // =========================================================================
-  // 6. Logic Hủy Đặt Sân
-  // =========================================================================
   async cancelBooking(bookingId: string, cancellingUser: UserDocument) {
     const booking = await this.bookingModel.findById(bookingId).populate('user').exec();
 
@@ -325,7 +322,7 @@ export class BookingService {
     
     await booking.save();
 
-    // Send confirmation notification
+    // Gửi thông báo xác nhận 
     await this.notificationService.sendCancellationConfirmation({
       userId: bookingOwner._id.toString(),
       bookingId: booking._id.toString(),

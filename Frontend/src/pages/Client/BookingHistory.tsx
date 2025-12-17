@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { toast } from "sonner";
 import {
   Search,
   Calendar,
@@ -132,7 +133,7 @@ const BookingHistory = () => {
     FAILED: "Thất bại",
     CHECKED_IN: "Đã check-in",
     COMPLETED: "Hoàn thành",
-    EXPIRED: "Hết hạn",
+    EXPIRED: "Hết hạn thanh toán",
   };
 
   const statusOptions = ["Tất cả", ...Object.values(statusMapping)];
