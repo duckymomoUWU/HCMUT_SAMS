@@ -6,10 +6,12 @@ import {
     Patch,
     Param,
     Delete,
+    Query,
   } from '@nestjs/common';
   import { EquipmentItemService } from './equipment-item.service';
   import { CreateEquipmentItemDto } from './dto/create-equipment-item.dto';
   import { UpdateEquipmentItemDto } from './dto/update-equipment-item.dto';
+import { EquipmentItemStatus } from './schemas/equipment-item.schema';
   
   @Controller('equipment-items')
   export class EquipmentItemController {
@@ -25,6 +27,14 @@ import {
     @Get()
     findAll() {
       return this.service.findAll();
+    }
+
+    // equipment-items/grouped?status=available
+    @Get('grouped')
+    getAllGrouped(
+      @Query('status') status?: EquipmentItemStatus,
+    ) {
+      return this.service.getAllGrouped(status);
     }
   
     // equipment-items/:id
@@ -47,5 +57,6 @@ import {
     remove(@Param('id') id: string) {
       return this.service.remove(id);
     }
+
   }
   

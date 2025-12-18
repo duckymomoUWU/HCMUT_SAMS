@@ -19,7 +19,41 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+import equipmentService, {
+  type GroupedEquipment,
+} from "@/services/equipmentService";
+import { useEffect, useState } from "react";
+
 const Dashboard = () => {
+  const [availableEquipments, setAvailableEquipments] = useState<
+    GroupedEquipment[]
+  >([]);
+  const [rentedEquipments, setRentedEquipments] = useState<GroupedEquipment[]>(
+    [],
+  );
+  const [maintenanceEquipments, setMaintenanceEquipments] = useState<
+    GroupedEquipment[]
+  >([]);
+  useEffect(() => {
+    equipmentService
+      .getAllGroupedEquipment("available")
+      .then(setAvailableEquipments);
+    equipmentService.getAllGroupedEquipment("rented").then(setRentedEquipments);
+    equipmentService
+      .getAllGroupedEquipment("maintenance")
+      .then(setMaintenanceEquipments);
+  }, []);
+
+  const totalRented = rentedEquipments.reduce((sum, e) => sum + e.total, 0);
+  const totalAvailable = availableEquipments.reduce(
+    (sum, e) => sum + e.total,
+    0,
+  );
+  const totalMaintenance = maintenanceEquipments.reduce(
+    (sum, e) => sum + e.total,
+    0,
+  );
+
   const stats = [
     {
       id: 1,
@@ -28,20 +62,20 @@ const Dashboard = () => {
       note: "+2 từ hôm qua",
       color: "text-blue-600",
       icon: (
-        <div className="p-2 bg-blue-50 rounded-lg">
-          <Calendar className="w-5 h-5 text-blue-600" />
+        <div className="rounded-lg bg-blue-50 p-2">
+          <Calendar className="h-5 w-5 text-blue-600" />
         </div>
       ),
     },
     {
       id: 2,
       title: "Thiết bị đang sử dụng",
-      value: "15/80",
-      note: "3 thiết bị đang bảo trì",
+      value: `${totalRented}/${totalAvailable}`,
+      note: `${totalMaintenance} thiết bị đang bảo trì`,
       color: "text-green-600",
       icon: (
-        <div className="p-2 bg-green-50 rounded-lg">
-          <Package className="w-5 h-5 text-green-600" />
+        <div className="rounded-lg bg-green-50 p-2">
+          <Package className="h-5 w-5 text-green-600" />
         </div>
       ),
     },
@@ -52,8 +86,8 @@ const Dashboard = () => {
       note: "+15%",
       color: "text-yellow-600",
       icon: (
-        <div className="p-2 bg-yellow-50 rounded-lg">
-          <DollarSign className="w-5 h-5 text-yellow-600" />
+        <div className="rounded-lg bg-yellow-50 p-2">
+          <DollarSign className="h-5 w-5 text-yellow-600" />
         </div>
       ),
     },
@@ -64,8 +98,8 @@ const Dashboard = () => {
       note: "8/12 khung giờ sân",
       color: "text-purple-600",
       icon: (
-        <div className="p-2 bg-purple-50 rounded-lg">
-          <Activity className="w-5 h-5 text-purple-600" />
+        <div className="rounded-lg bg-purple-50 p-2">
+          <Activity className="h-5 w-5 text-purple-600" />
         </div>
       ),
     },
@@ -79,14 +113,6 @@ const Dashboard = () => {
     { day: "T6", bookings: 5 },
     { day: "T7", bookings: 4 },
     { day: "CN", bookings: 3 },
-  ];
-
-  const deviceStatus = [
-    { name: "Bóng futsal", used: 8, total: 10 },
-    { name: "Áo bib", used: 15, total: 20 },
-    { name: "Vợt cầu lông", used: 6, total: 8 },
-    { name: "Cọc biên", used: 8, total: 16 },
-    { name: "Bóng rổ", used: 3, total: 5 },
   ];
 
   const bookings = [
@@ -150,7 +176,7 @@ const Dashboard = () => {
         subtitle="Theo dõi tình hình thiết bị và sân trong ngày"
       />
       {/* Thẻ thống kê */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((item) => (
           <StatCard
             key={item.id}
@@ -164,12 +190,12 @@ const Dashboard = () => {
       </div>
 
       {/* Biểu đồ + tình trạng thiết bị */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Biểu đồ */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-blue-600" />
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-800">
+              <BarChart3 className="h-5 w-5 text-blue-600" />
               Slot sân trong tuần
             </h2>
             <span className="text-sm text-gray-500">
@@ -190,27 +216,27 @@ const Dashboard = () => {
         </div>
 
         {/* Tình trạng thiết bị */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <Dumbbell className="w-5 h-5 text-green-600" />
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <Dumbbell className="h-5 w-5 text-green-600" />
             <h2 className="text-lg font-semibold text-gray-800">
               Tình trạng thiết bị
             </h2>
           </div>
           <div className="space-y-4">
-            {deviceStatus.map((d) => {
-              const percent = (d.used / d.total) * 100;
+            {availableEquipments.map((item) => {
+              const percent = (item.equipment.quantity / item.total) * 100;
               return (
-                <div key={d.name}>
-                  <div className="flex justify-between text-sm text-gray-600 mb-1">
-                    <span>{d.name}</span>
+                <div key={item.equipment._id}>
+                  <div className="mb-1 flex justify-between text-sm text-gray-600">
+                    <span>{item.equipment.name}</span>
                     <span>
-                      {d.used}/{d.total}
+                      {item.equipment.quantity}/{item.total}
                     </span>
                   </div>
-                  <div className="w-full bg-gray-100 rounded-full h-2">
+                  <div className="h-2 w-full rounded-full bg-gray-100">
                     <div
-                      className="bg-green-500 h-2 rounded-full"
+                      className="h-2 rounded-full bg-green-500"
                       style={{ width: `${percent}%` }}
                     ></div>
                   </div>
@@ -222,11 +248,11 @@ const Dashboard = () => {
       </div>
 
       {/* Danh sách đặt + Lịch khung giờ */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Đặt lịch gần đây */}
-        <div className="bg-white border border-gray-300 rounded-xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <Clock className="w-5 h-5 text-gray-700" />
+        <div className="rounded-xl border border-gray-300 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <Clock className="h-5 w-5 text-gray-700" />
             <h2 className="text-lg font-semibold text-gray-800">
               Đặt lịch gần đây
             </h2>
@@ -236,7 +262,7 @@ const Dashboard = () => {
             {bookings.map((b, i) => (
               <div
                 key={i}
-                className="bg-gray-100 rounded-lg p-4 flex justify-between items-center"
+                className="flex items-center justify-between rounded-lg bg-gray-100 p-4"
               >
                 <div>
                   <p className="font-medium text-gray-700">{b.time}</p>
@@ -245,11 +271,11 @@ const Dashboard = () => {
                 </div>
                 <div className="text-right">
                   <span
-                    className={`text-xs px-2 py-1 rounded-full font-medium ${b.color}`}
+                    className={`rounded-full px-2 py-1 text-xs font-medium ${b.color}`}
                   >
                     {b.status}
                   </span>
-                  <p className="text-gray-700 font-semibold mt-2 text-sm">
+                  <p className="mt-2 text-sm font-semibold text-gray-700">
                     {b.price}
                   </p>
                 </div>
@@ -257,15 +283,15 @@ const Dashboard = () => {
             ))}
           </div>
 
-          <div className="mt-4 border border-gray-300 rounded-md py-2 text-center text-sm text-gray-800 font-medium hover:bg-gray-50 cursor-pointer transition">
+          <div className="mt-4 cursor-pointer rounded-md border border-gray-300 py-2 text-center text-sm font-medium text-gray-800 transition hover:bg-gray-50">
             Xem tất cả lịch đặt
           </div>
         </div>
 
         {/* Lịch hôm nay */}
-        <div className="bg-white border border-gray-300 rounded-xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <Clock className="w-5 h-5 text-gray-700" />
+        <div className="rounded-xl border border-gray-300 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <Clock className="h-5 w-5 text-gray-700" />
             <h2 className="text-lg font-semibold text-gray-800">
               Lịch khung giờ hôm nay
             </h2>
@@ -275,14 +301,14 @@ const Dashboard = () => {
             {schedules.map((s, i) => (
               <div
                 key={i}
-                className="bg-gray-100 rounded-lg p-4 flex justify-between items-center"
+                className="flex items-center justify-between rounded-lg bg-gray-100 p-4"
               >
                 <div>
                   <p className="font-medium text-gray-700">{s.time}</p>
                   <p className="text-sm text-gray-700">{s.name}</p>
                 </div>
                 <span
-                  className={`text-xs px-2 py-1 rounded-full font-medium ${s.color}`}
+                  className={`rounded-full px-2 py-1 text-xs font-medium ${s.color}`}
                 >
                   {s.status}
                 </span>
@@ -290,7 +316,7 @@ const Dashboard = () => {
             ))}
           </div>
 
-          <div className="mt-4 border border-gray-300 rounded-md py-2 text-center text-sm text-gray-800 font-medium hover:bg-gray-50 cursor-pointer transition">
+          <div className="mt-4 cursor-pointer rounded-md border border-gray-300 py-2 text-center text-sm font-medium text-gray-800 transition hover:bg-gray-50">
             Xem tất cả
           </div>
         </div>
