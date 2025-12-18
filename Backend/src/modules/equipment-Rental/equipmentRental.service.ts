@@ -44,7 +44,8 @@ export class EquipmentRentalService {
   // CREATE - THUÊ
   // ===============================
   async create(dto: CreateEquipmentRentalDto) {
-    const equipment = await this.equipmentModel.findById(dto.equipmentId);
+    const equipmentId = new Types.ObjectId(dto.equipmentId);
+    const equipment = await this.equipmentModel.findById(equipmentId);
     if (!equipment) {
       throw new NotFoundException('Equipment not found');
     }
@@ -52,7 +53,7 @@ export class EquipmentRentalService {
     // LẤY ITEM AVAILABLE
     const items = await this.itemModel
       .find({
-        equipment: dto.equipmentId,
+        equipment: equipmentId,
         status: EquipmentItemStatus.AVAILABLE,
       })
       .limit(dto.quantity);
@@ -73,8 +74,8 @@ export class EquipmentRentalService {
     const totalPrice = equipment.pricePerHour * dto.duration * itemIds.length;
 
     const rental = await this.rentalModel.create({
-      userId: dto.userId,
-      equipmentId: dto.equipmentId,
+      userId: new Types.ObjectId(dto.userId),
+      equipmentId: equipmentId,
       items: itemIds,
       rentalDate,
       duration: dto.duration,
@@ -85,7 +86,7 @@ export class EquipmentRentalService {
 
     // RECALC EQUIPMENT
     await this.equipmentService.recalcFromItems(
-      equipment._id as Types.ObjectId,
+      equipmentId,
     );
 
     return rental;

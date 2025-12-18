@@ -124,13 +124,17 @@ export class EquipmentService {
   }
 
   async findWithItems(id: string) {
-    const equipment = await this.equipmentModel.findById(id);
+    const equipmentObjectId = new Types.ObjectId(id);
+  
+    const equipment = await this.equipmentModel.findById(equipmentObjectId);
     if (!equipment) {
       throw new NotFoundException('Equipment not found');
     }
-
-    const items = await this.itemModel.find({ equipment: id }).exec();
-
+  
+    const items = await this.itemModel
+      .find({ equipment: equipmentObjectId })
+      .exec();
+  
     return {
       ...equipment.toObject(),
       items,

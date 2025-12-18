@@ -13,6 +13,16 @@ export interface Equipment {
   updatedAt?: string;
 }
 
+export const EquipmentItemStatus = {
+  AVAILABLE: "available",
+  RENTED: "rented",
+  MAINTENANCE: "maintenance",
+  BROKEN: "broken",
+};
+
+export type EquipmentStatus =
+  (typeof EquipmentItemStatus)[keyof typeof EquipmentItemStatus];
+
 export interface EquipmentItem {
   _id: string;
   equipment: string;
@@ -21,6 +31,12 @@ export interface EquipmentItem {
   note?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface GroupedEquipment {
+  equipment: Equipment;
+  items: EquipmentItem[];
+  total: number;
 }
 
 export interface EquipmentWithItems extends Equipment {
@@ -49,6 +65,18 @@ class EquipmentService {
 
   async getEquipmentById(id: string): Promise<Equipment> {
     const response = await api.get<Equipment>(`/equipment/${id}`);
+    return response.data;
+  }
+
+  async getAllGroupedEquipment(
+    status?: EquipmentStatus,
+  ): Promise<GroupedEquipment[]> {
+    const response = await api.get<GroupedEquipment[]>(
+      "/equipment-items/grouped",
+      {
+        params: { status },
+      },
+    );
     return response.data;
   }
 
