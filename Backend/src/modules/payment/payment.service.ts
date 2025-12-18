@@ -16,7 +16,7 @@ export class PaymentService {
     @InjectModel(Payment.name)
     private paymentModel: Model<PaymentDocument>,
     private configService: ConfigService, // ← Inject ConfigService
-  ) {}
+  ) { }
 
   // 1. TẠO PAYMENT VÀ VNPAY URL
   async createPayment(
@@ -30,8 +30,8 @@ export class PaymentService {
     // Validate và convert referenceId nếu cần
     let referenceId: Types.ObjectId | string = createPaymentDto.referenceId;
     // Chỉ convert sang ObjectId nếu là valid ObjectId string (24 hex characters)
-    if (Types.ObjectId.isValid(createPaymentDto.referenceId) && 
-        createPaymentDto.referenceId.length === 24) {
+    if (Types.ObjectId.isValid(createPaymentDto.referenceId) &&
+      createPaymentDto.referenceId.length === 24) {
       referenceId = new Types.ObjectId(createPaymentDto.referenceId);
     }
 
@@ -63,8 +63,8 @@ export class PaymentService {
     // Tạo VNPay URL
     const paymentUrl = VNPayHelper.createPaymentUrl(vnpayConfig, {
       amount: createPaymentDto.amount,
-      orderInfo:
-        createPaymentDto.description || `Thanh toán ${createPaymentDto.type}`,
+      // Sử dụng chữ in hoa và không dấu ngoặc để tránh lỗi mã hóa URL
+      orderInfo: `${createPaymentDto.description || `Thanh toán ${createPaymentDto.type}`} ORIGIN_${createPaymentDto.origin?.toUpperCase() || 'BOOKING'}`,
       orderId: orderId,
       ipAddr: ipAddr || '127.0.0.1',
     });
@@ -101,10 +101,10 @@ export class PaymentService {
     if (!payment) {
       throw new NotFoundException('Payment not found');
     }
-
+    const origin = query.vnp_OrderInfo?.includes('ORIGIN_HISTORY') ? 'history' : 'booking';
     // Kiểm tra response code từ VNPay
     const responseCode = data.vnp_ResponseCode;
-
+    let status = 'failed';
     if (responseCode === '00') {
       // Thanh toán thành công
       payment.status = 'success';
@@ -112,7 +112,13 @@ export class PaymentService {
       payment.vnpayTransactionNo = data.vnp_TransactionNo;
       payment.vnpayResponseCode = responseCode;
       payment.bankCode = data.vnp_BankCode;
-    } else {
+    }
+    else if (responseCode === '24') {
+      // NGƯỜI DÙNG HỦY GIAO DỊCH
+      payment.status = 'cancelled'; // Cập nhật status thành cancelled
+      payment.vnpayResponseCode = responseCode;
+    }
+    else {
       // Thanh toán thất bại
       payment.status = 'failed';
       payment.vnpayResponseCode = responseCode;
@@ -122,6 +128,8 @@ export class PaymentService {
 
     return {
       success: payment.status === 'success',
+      status: payment.status,
+      origin,
       message:
         payment.status === 'success' ? 'Payment successful' : 'Payment failed',
       payment: {

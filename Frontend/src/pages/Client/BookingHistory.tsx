@@ -22,13 +22,15 @@ interface Booking {
     location: string;
   };
   bookingDate: string;
+  startTime?: string; // Bổ sung
+  endTime?: string;   // Bổ sung
   slots: {
     startTime: string;
     endTime: string;
     price: number;
   }[];
   totalPrice: number;
-  status: 'PENDING_PAYMENT' | 'CONFIRMED' | 'PAID' | 'CANCELLED' | 'FAILED' | 'CHECKED_IN' | 'COMPLETED' | 'EXPIRED';
+  status: string;
 }
 
 const BookingHistory = () => {
@@ -40,7 +42,7 @@ const BookingHistory = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [repayLoading, setRepayLoading] = useState<string | null>(null); // To track loading state for each button
-  
+
   // State for details modal
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedBookingForDetails, setSelectedBookingForDetails] = useState<Booking | null>(null);
@@ -67,24 +69,44 @@ const BookingHistory = () => {
       setRepayLoading(null);
     }
   };
-  
-  const navigate = useNavigate(); // Keep navigate for other potential uses
 
+  const navigate = useNavigate(); // Keep navigate for other potential uses
 
   useEffect(() => {
     const fetchBookings = async () => {
+      // 1. Xử lý Toast thông báo từ VNPay trước
+      const params = new URLSearchParams(window.location.search);
+      const status = params.get('status');
+      if (status === 'cancelled') {
+        toast.warning("Bạn đã hủy thanh toán đơn đặt sân.");
+        window.history.replaceState({}, '', window.location.pathname);
+      } else if (status === 'success') {
+        toast.success("Thanh toán thành công!");
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+
+      // 2. Kiểm tra Token (Dùng accessToken cho đúng với AuthService)
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
       try {
         const response = await api.get("/booking/history?type=all");
-        setBookings(response.data);
-      } catch (err) {
+        // 3. Trích xuất mảng dữ liệu
+        const data = response.data?.bookings || response.data?.data || response.data || [];
+        setBookings(Array.isArray(data) ? data : []);
+      } catch (err: any) {
         setError("Không thể tải lịch sử đặt chỗ. Vui lòng thử lại.");
-        console.error(err);
+        console.error("Fetch error:", err);
       } finally {
         setLoading(false);
       }
     };
+
     fetchBookings();
   }, []);
 
@@ -124,7 +146,7 @@ const BookingHistory = () => {
         return "bg-gray-50 text-gray-700 border-gray-200";
     }
   };
-  
+
   const statusMapping: { [key: string]: string } = {
     PENDING_PAYMENT: "Chờ thanh toán",
     CONFIRMED: "Đã xác nhận",
@@ -140,14 +162,17 @@ const BookingHistory = () => {
 
   const now = new Date();
 
-  // Helper to get the earliest start time from a booking's slots
   const getEarliestStartTime = (booking: Booking): string | null => {
-    if (!booking.slots || booking.slots.length === 0) return null;
-    return booking.slots.reduce((earliest, current) => 
-      current.startTime < earliest ? current.startTime : earliest
-    , "23:59");
-  };
+    // Ưu tiên lấy từ startTime trực tiếp (giống dữ liệu DB của bạn)
+    if (booking.startTime) return booking.startTime;
 
+    // Nếu không có thì mới tìm trong slots
+    if (!booking.slots || booking.slots.length === 0) return null;
+    return booking.slots.reduce((earliest, current) =>
+      current.startTime < earliest ? current.startTime : earliest
+      , "23:59");
+  };
+  //Added 
   const getBookingDateTime = (booking: Booking) => {
     const earliestStartTime = getEarliestStartTime(booking);
     if (!earliestStartTime) return new Date(0); // Return a very past date if no slots
@@ -158,100 +183,103 @@ const BookingHistory = () => {
     return bookingDateObj;
   };
 
-  const upcomingBookings = bookings.filter(b => {
-    const bookingDateTime = getBookingDateTime(b);
-    return bookingDateTime >= now && !['CANCELLED', 'FAILED', 'COMPLETED', 'EXPIRED'].includes(b.status);
-  });
+  // 1. Lọc toàn bộ đơn Đặt Sân (Phải có facility)
+  const facilityBookings = bookings.filter(b => b.facility && b.facility.name);
 
-  const historyBookings = bookings.filter(b => {
-    const bookingDateTime = getBookingDateTime(b);
-    return bookingDateTime < now || ['CANCELLED', 'FAILED', 'COMPLETED', 'EXPIRED'].includes(b.status);
-  });
+  // 2. Lọc toàn bộ đơn Thiết bị (Không có facility)
+  const equipmentBookings = bookings.filter(b => !b.facility);
 
-  const filteredUpcoming = upcomingBookings.filter(b => 
+  // 3. Logic tìm kiếm cho Tab Đặt Sân
+  const filteredFacilities = facilityBookings.filter(b =>
     (filterStatus === "Tất cả" || statusMapping[b.status] === filterStatus) &&
-    ((b.facility?.name || '').toLowerCase().includes(searchTerm.toLowerCase()))
+    (b.facility.name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const filteredHistory = historyBookings.filter(b =>
+  // 4. Logic tìm kiếm cho Tab Thiết bị
+  const filteredEquipments = equipmentBookings.filter(b =>
     (filterStatus === "Tất cả" || statusMapping[b.status] === filterStatus) &&
-    ((b.facility?.name || '').toLowerCase().includes(searchTerm.toLowerCase()))
+    ((b.facility?.name || 'Thiết bị').toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const renderBookingCard = (booking: Booking) => {
     if (!booking.slots || booking.slots.length === 0) return null;
 
     // Get the overall time range
-    const firstSlot = booking.slots[0];
-    const lastSlot = booking.slots[booking.slots.length - 1];
-    const timeRange = `${firstSlot.startTime} - ${lastSlot.endTime}`;
+    // 1. Lấy thời gian hiển thị linh hoạt (Ưu tiên startTime/endTime trực tiếp từ DB)
+    const startTime = booking.startTime || (booking.slots?.[0]?.startTime);
+    const endTime = booking.endTime || (booking.slots?.[booking.slots.length - 1]?.endTime);
+    const timeRange = startTime && endTime ? `${startTime} - ${endTime}` : "N/A";
+
+    // 2. Tính số lượng slot (nếu có)
+    const slotCount = booking.slots?.length || 1;
 
     return (
-    <div
-      key={booking._id}
-      className="rounded-xl border bg-white p-5 shadow-sm transition hover:shadow-md"
-    >
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-        <div className="flex-1">
-          <div className="mb-2 flex items-center gap-3">
-            <h3 className="text-lg font-semibold text-gray-900">
-              {booking.facility?.name || "Sân không xác định"}
-            </h3>
-            <span
-              className={`flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium ${getStatusColorClass(
-                booking.status,
-              )}`}
-            >
-              {getStatusIcon(booking.status)}
-              {statusMapping[booking.status] || booking.status}
-            </span>
-          </div>
-
-          <div className="flex flex-wrap gap-4 text-sm text-gray-700">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-gray-500" />
-              <span>{new Date(booking.bookingDate).toLocaleDateString('vi-VN')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-gray-500" />
-              <span>{timeRange} ({booking.slots.length} slot{booking.slots.length > 1 ? 's' : ''})</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-gray-500" />
-              <span className="font-medium text-gray-900">
-                {booking.totalPrice.toLocaleString("vi-VN")} đ
+      <div
+        key={booking._id}
+        className="rounded-xl border bg-white p-5 shadow-sm transition hover:shadow-md"
+      >
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+          <div className="flex-1">
+            <div className="mb-2 flex items-center gap-3">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {booking.facility?.name || "Sân không xác định"}
+              </h3>
+              <span
+                className={`flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium ${getStatusColorClass(
+                  booking.status,
+                )}`}
+              >
+                {getStatusIcon(booking.status)}
+                {statusMapping[booking.status] || booking.status}
               </span>
             </div>
+
+            <div className="flex flex-wrap gap-4 text-sm text-gray-700">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-gray-500" />
+                <span>{new Date(booking.bookingDate).toLocaleDateString('vi-VN')}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-gray-500" />
+                <span>{timeRange} ({slotCount} slot{slotCount > 1 ? 's' : ''})</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-gray-500" />
+                <span className="font-medium text-gray-900">
+                  {booking.totalPrice.toLocaleString("vi-VN")} đ
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            {['PENDING_PAYMENT'].includes(booking.status) && (
+              <button
+                onClick={() => handleRepay(booking._id)}
+                disabled={repayLoading === booking._id}
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 flex items-center gap-2 disabled:bg-blue-400 disabled:cursor-not-allowed"
+              >
+                {repayLoading === booking._id && <Loader2 className="h-4 w-4 animate-spin" />}
+                Thanh toán lại
+              </button>
+            )}
+            {booking.status === "COMPLETED" && (
+              <button className="flex items-center gap-2 rounded-md border px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-50">
+                <RefreshCw className="h-4 w-4" />
+                Đặt lại
+              </button>
+            )}
+            <button
+              onClick={() => handleShowDetails(booking)}
+              className="rounded-md border px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-50"
+            >
+              Xem chi tiết
+            </button>
           </div>
         </div>
-
-        <div className="flex gap-2">
-          {['PENDING_PAYMENT', 'FAILED', 'EXPIRED'].includes(booking.status) && (
-            <button
-              onClick={() => handleRepay(booking._id)}
-              disabled={repayLoading === booking._id}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 flex items-center gap-2 disabled:bg-blue-400 disabled:cursor-not-allowed"
-            >
-              {repayLoading === booking._id && <Loader2 className="h-4 w-4 animate-spin" />}
-              Thanh toán lại
-            </button>
-          )}
-          {booking.status === "COMPLETED" && (
-            <button className="flex items-center gap-2 rounded-md border px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-50">
-              <RefreshCw className="h-4 w-4" />
-              Đặt lại
-            </button>
-          )}
-          <button
-            onClick={() => handleShowDetails(booking)}
-            className="rounded-md border px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-50"
-          >
-            Xem chi tiết
-          </button>
-        </div>
       </div>
-    </div>
-  )};
+    )
+  };
 
   return (
     <div className="flex flex-col gap-8 pt-4">
@@ -263,23 +291,21 @@ const BookingHistory = () => {
       <div className="flex gap-4 border-b">
         <button
           onClick={() => setActiveTab("upcoming")}
-          className={`px-4 pb-3 font-medium transition ${
-            activeTab === "upcoming"
-              ? "border-b-2 border-blue-600 text-blue-600"
-              : "text-gray-600 hover:text-gray-900"
-          }`}
+          className={`px-4 pb-3 font-medium transition ${activeTab === "upcoming"
+            ? "border-b-2 border-blue-600 text-blue-600"
+            : "text-gray-600 hover:text-gray-900"
+            }`}
         >
-          Sắp tới ({upcomingBookings.length})
+          Đặt Sân ({facilityBookings.length})
         </button>
         <button
           onClick={() => setActiveTab("history")}
-          className={`px-4 pb-3 font-medium transition ${
-            activeTab === "history"
-              ? "border-b-2 border-blue-600 text-blue-600"
-              : "text-gray-600 hover:text-gray-900"
-          }`}
+          className={`px-4 pb-3 font-medium transition-all ${activeTab === "history"
+            ? "border-b-2 border-blue-600 text-blue-600"
+            : "text-gray-500 hover:text-gray-700"
+            }`}
         >
-          Lịch sử ({historyBookings.length})
+          Thiết bị ({equipmentBookings.length})
         </button>
       </div>
 
@@ -310,38 +336,37 @@ const BookingHistory = () => {
         </div>
       </div>
 
+      {/* Phần hiển thị danh sách */}
       {loading ? (
         <div className="flex justify-center items-center h-40">
           <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
         </div>
-      ) : error ? (
-        <div className="rounded-xl border bg-red-50 p-8 text-center shadow-sm">
-          <AlertCircle className="mx-auto mb-4 h-16 w-16 text-red-400" />
-          <p className="text-lg text-red-600">{error}</p>
-        </div>
       ) : (
         <>
+          {/* HIỂN THỊ TAB ĐẶT SÂN */}
           {activeTab === "upcoming" && (
             <div className="space-y-4">
-              {filteredUpcoming.length === 0 ? (
+              {filteredFacilities.length === 0 ? (
                 <div className="rounded-xl border bg-white p-8 text-center shadow-sm">
                   <Calendar className="mx-auto mb-4 h-16 w-16 text-gray-300" />
-                  <p className="text-lg text-gray-600">Không có đặt chỗ nào sắp tới</p>
+                  <p className="text-lg text-gray-600">Bạn chưa có đơn đặt sân nào</p>
                 </div>
               ) : (
-                filteredUpcoming.map(renderBookingCard)
+                filteredFacilities.map(renderBookingCard)
               )}
             </div>
           )}
+
+          {/* HIỂN THỊ TAB THIẾT BỊ */}
           {activeTab === "history" && (
             <div className="space-y-4">
-              {filteredHistory.length === 0 ? (
+              {filteredEquipments.length === 0 ? (
                 <div className="rounded-xl border bg-white p-8 text-center shadow-sm">
-                   <Calendar className="mx-auto mb-4 h-16 w-16 text-gray-300" />
-                  <p className="text-lg text-gray-600">Không có gì trong lịch sử</p>
+                  <Calendar className="mx-auto mb-4 h-16 w-16 text-gray-300" />
+                  <p className="text-lg text-gray-600">Bạn chưa có đơn thuê thiết bị nào</p>
                 </div>
               ) : (
-                filteredHistory.map(renderBookingCard)
+                filteredEquipments.map(renderBookingCard)
               )}
             </div>
           )}
@@ -361,9 +386,20 @@ const BookingHistory = () => {
               <div className="flex flex-col">
                 <p className="font-medium text-gray-500">Khung giờ đã đặt:</p>
                 <ul className="list-disc list-inside pl-4 mt-1">
-                  {selectedBookingForDetails.slots.map(slot => (
-                    <li key={slot.startTime}>{slot.startTime} - {slot.endTime}</li>
-                  ))}
+                  {selectedBookingForDetails.slots && selectedBookingForDetails.slots.length > 0 ? (
+                    selectedBookingForDetails.slots
+                      .slice() // Tạo bản sao để không làm thay đổi mảng gốc
+                      .sort((a, b) => a.startTime.localeCompare(b.startTime)) // Sắp xếp 18:00 trước 19:00
+                      .map(slot => (
+                        <li key={slot.startTime}>
+                          {slot.startTime} - {slot.endTime}
+                        </li>
+                      ))
+                  ) : (
+                    <li>
+                      {selectedBookingForDetails.startTime} - {selectedBookingForDetails.endTime}
+                    </li>
+                  )}
                 </ul>
               </div>
               <p className="flex justify-between"><span className="font-medium text-gray-500">Trạng thái:</span> <span className="font-medium text-blue-600">{statusMapping[selectedBookingForDetails.status] || selectedBookingForDetails.status}</span></p>

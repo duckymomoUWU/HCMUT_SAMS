@@ -1,5 +1,5 @@
-/* eslint-disable */
 // Backend/src/modules/booking/booking.module.ts
+/* eslint-disable */
 import { Module } from '@nestjs/common';
 import { BookingService } from './booking.service';
 import { BookingController } from './booking.controller';
@@ -17,8 +17,7 @@ import { PaymentModule } from '../payment/payment.module'; // Import PaymentModu
       { name: User.name, schema: UserSchema },
     ]),
     NotificationModule,
-    // PenaltyHistoryModule,
-    PaymentModule, // Add PaymentModule here
+    PaymentModule,
   ],
   controllers: [BookingController],
   providers: [BookingService],

@@ -5,7 +5,7 @@ import { CalendarDays, Clock, CheckCircle2, AlertCircle, Loader2, User as UserIc
 import PageHeader from "@/components/Admin/PageHeader";
 import StatCard from "@/components/Admin/StatCard";
 import Calendar from "react-calendar";
-import "react-calendar/dist/calendar.css";
+import './calendar.css';
 import "@/pages/Client/calendar.css";
 import api from "@/services/api"; // Import the api service
 

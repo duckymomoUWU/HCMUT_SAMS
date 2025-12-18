@@ -31,7 +31,7 @@ export class BookingService {
     // private readonly penaltyHistoryService: PenaltyHistoryService,
     private readonly paymentService: PaymentService,
     @InjectConnection() private readonly connection: Connection,
-  ) {}
+  ) { }
 
   // =========================================================================
   // CRON JOB for Expired Bookings
@@ -39,7 +39,7 @@ export class BookingService {
   @Cron(CronExpression.EVERY_MINUTE)
   async handleExpiredBookings() {
     this.logger.log('Running cron job to handle expired bookings...');
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const fiveMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
 
     try {
       const result = await this.bookingModel.updateMany(
@@ -70,7 +70,7 @@ export class BookingService {
     if (!user) {
       throw new NotFoundException('Người dùng không tồn tại.');
     }
-    
+
     // --- Validation Checks ---
     const bookingDateObj = new Date(bookingDate);
     const thirtyDaysFromNow = new Date();
@@ -79,7 +79,7 @@ export class BookingService {
     if (bookingDateObj > thirtyDaysFromNow) {
       throw new BadRequestException('Chỉ có thể đặt lịch trong vòng 30 ngày tới.');
     }
-    
+
     // --- Availability Check for all slots ---
     const statusesThatBlockBooking: BookingStatus[] = [
       BookingStatus.PENDING_PAYMENT,
@@ -107,7 +107,7 @@ export class BookingService {
     if (overlappingBooking) {
       throw new ConflictException('Một hoặc nhiều khung giờ bạn chọn đã bị đặt.');
     }
-      
+
     // --- Create Booking Document ---
     const totalPrice = slots.reduce((sum, slot) => sum + slot.price, 0);
 
@@ -120,17 +120,18 @@ export class BookingService {
       status: BookingStatus.PENDING_PAYMENT,
       paymentMethod: 'VNPAY', // Or get from DTO if needed
     });
-  
+
     await newBooking.save();
-    
+
     // --- Call Payment Service ---
     const paymentResponse = await this.paymentService.createPayment({
-        amount: newBooking.totalPrice,
-        description: `Thanh toán cho đơn đặt sân ${newBooking._id.toString()}`,
-        type: 'booking', // Use 'booking' type for the payment
-        referenceId: newBooking._id.toString(),
+      amount: newBooking.totalPrice,
+      description: `Thanh toán cho đơn đặt sân ${newBooking._id.toString()}`,
+      type: 'booking', // Use 'booking' type for the payment
+      referenceId: newBooking._id.toString(),
+      origin: 'booking',
     }, userId, ipAddr);
-    
+
     return {
       bookingId: newBooking._id,
       paymentUrl: paymentResponse.payment.paymentUrl,
@@ -156,14 +157,14 @@ export class BookingService {
         status: 'available',
       });
     }
-    
+
     const bookingsOnDate = await this.bookingModel.find({
-        facility: new Types.ObjectId(facilityId),
-        bookingDate: new Date(date),
-        status: { 
-            $nin: [BookingStatus.CANCELLED, BookingStatus.FAILED, BookingStatus.EXPIRED] 
-        },
-    }).select('slots').exec(); 
+      facility: new Types.ObjectId(facilityId),
+      bookingDate: new Date(date),
+      status: {
+        $nin: [BookingStatus.CANCELLED, BookingStatus.FAILED, BookingStatus.EXPIRED]
+      },
+    }).select('slots').exec();
 
     const bookedTimeSlots = new Set<string>();
     bookingsOnDate.forEach(booking => {
@@ -173,10 +174,10 @@ export class BookingService {
     });
 
     return allSlots.map(slot => {
-        if (bookedTimeSlots.has(slot.time)) {
-            return { ...slot, status: 'booked' };
-        }
-        return slot;
+      if (bookedTimeSlots.has(slot.time)) {
+        return { ...slot, status: 'booked' };
+      }
+      return slot;
     });
   }
 
@@ -207,31 +208,31 @@ export class BookingService {
       booking.status = BookingStatus.CONFIRMED;
       booking.paymentTransactionId = txnRef || `DUMMY_${Date.now()}`;
       await booking.save();
-      
+
       await this.notificationService.sendConfirmation(userId, bookingId);
-      
+
       return { success: true, message: 'Thanh toán thành công và đã xác nhận đặt sân!' };
     } else {
-      booking.status = BookingStatus.FAILED; 
+      booking.status = BookingStatus.FAILED;
       await booking.save();
-      
+
       await this.notificationService.sendFailure(userId, bookingId);
-      
+
       return { success: false, message: 'Thanh toán thất bại.' };
     }
   }
-  
+
   // =========================================================================
   // 5. Logic Lấy Lịch sử Đặt Sân của User (API History)
   // =========================================================================
-  async findUserBookings(userId: string, type: 'upcoming' | 'history' | 'all' = 'all') { 
+  async findUserBookings(userId: string, type: 'upcoming' | 'history' | 'all' = 'all') {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Reset về đầu ngày để so sánh
 
     const query: any = {
       user: new Types.ObjectId(userId),
     };
-    
+
     if (type === 'upcoming') {
       // Lấy các đơn từ hôm nay trở đi và chưa bị hủy/lỗi
       query.bookingDate = { $gte: today };
@@ -271,7 +272,7 @@ export class BookingService {
 
     // --- Giai đoạn 1: Validation ---
     const now = new Date();
-    
+
     // Find the earliest start time from the slots array
     if (!booking.slots || booking.slots.length === 0) {
       throw new InternalServerErrorException('Booking has no time slots.');
@@ -281,7 +282,7 @@ export class BookingService {
     }, booking.slots[0].startTime);
 
     const bookingStartTime = new Date(`${booking.bookingDate.toISOString().split('T')[0]}T${earliestStartTime}`);
-    
+
     // Rule: Cannot cancel if the booking time has already passed
     if (now >= bookingStartTime) {
       throw new ForbiddenException('Không thể hủy vì đã quá thời gian đặt sân.');
@@ -316,10 +317,10 @@ export class BookingService {
     } catch (error) {
       console.error(`[CRITICAL] Error during refund process for booking ${bookingId}:`, error);
     }
-    
+
     // --- Giai đoạn 3: Cập nhật Trạng thái và Hậu cần ---
     booking.status = BookingStatus.CANCELLED;
-    
+
     await booking.save();
 
     // Gửi thông báo xác nhận 
@@ -337,7 +338,7 @@ export class BookingService {
       penaltyPointsApplied: 0,
     };
   }
-  
+
   // =========================================================================
   // 7. Các Hàm CRUD cơ bản (Cần sửa ID sang string)
   // =========================================================================
@@ -349,25 +350,75 @@ export class BookingService {
     );
   }
 
-  findAll() { return this.bookingModel.find().exec(); }
+  // 1. Cập nhật findAll để nhận tham số filters (Sửa lỗi TS2554)
+  async findAll(filters: any = {}) {
+    const query = {};
+    if (filters.status) query['status'] = filters.status;
+    if (filters.facilityId) query['facility'] = filters.facilityId;
 
+    return this.bookingModel
+      .find(query)
+      .populate('user', 'name email')      // Lấy thêm thông tin người đặt
+      .populate('facility', 'name type')   // Lấy thêm thông tin sân
+      .sort({ createdAt: -1 })             // Đơn mới nhất lên đầu
+      .exec();
+  }
+
+  // 2. Hiện thực hàm findOne (Giữ nguyên logic của bạn)
   async findOne(id: string) {
-    const booking = await this.bookingModel.findById(id).exec();
-    if (!booking) { throw new NotFoundException(`Booking with ID ${id} not found`); }
+    const booking = await this.bookingModel
+      .findById(id)
+      .populate('user', 'name email')
+      .populate('facility', 'name type')
+      .exec();
+    if (!booking) {
+      throw new NotFoundException(`Booking with ID ${id} not found`);
+    }
     return booking;
   }
 
+  // 3. Thêm hàm cập nhật trạng thái dành cho Admin (Sửa lỗi TS2339)
+  async updateStatusByAdmin(id: string, status: string) {
+    const booking = await this.bookingModel.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true } // Trả về object sau khi đã cập nhật
+    );
+    if (!booking) {
+      throw new NotFoundException(`Không tìm thấy đơn hàng ID: ${id}`);
+    }
+    return booking;
+  }
+
+  // 4. Thêm hàm thống kê dữ liệu (Sửa lỗi TS2339)
+  async getStatistics() {
+    return this.bookingModel.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          totalRevenue: { $sum: '$totalPrice' }
+        }
+      }
+    ]);
+  }
+  // async findOne(id: string) {
+  //   const booking = await this.bookingModel.findById(id).exec();
+  //   if (!booking) { throw new NotFoundException(`Booking with ID ${id} not found`); }
+  //   return booking;
+  // }
+
   // Hàm update (được dùng cho Admin hoặc thay đổi trạng thái)
-  async update(id: string, updateBookingDto: UpdateBookingDto) { 
+  async update(id: string, updateBookingDto: UpdateBookingDto) {
     const updatedBooking = await this.bookingModel
-        .findByIdAndUpdate(id, updateBookingDto, { new: true })
-        .exec();
+      .findByIdAndUpdate(id, updateBookingDto, { new: true })
+      .exec();
     if (!updatedBooking) { throw new NotFoundException(`Booking with ID ${id} not found`); }
     return updatedBooking;
   }
 
   // Hàm remove/cancel
-  async remove(id: string) { 
+  async remove(id: string) {
     const deletedBooking = await this.bookingModel.findByIdAndDelete(id).exec();
     if (!deletedBooking) { throw new NotFoundException(`Booking with ID ${id} not found`); }
     return { message: `Booking with ID ${id} removed successfully.` };
@@ -382,38 +433,50 @@ export class BookingService {
     if (!booking) {
       throw new NotFoundException('Đơn đặt sân không tồn tại.');
     }
+    const dbUserId = String(booking.user);
+    const tokenUserId = String(userId);
+    console.log('So sánh thực tế:', dbUserId === tokenUserId);
 
-    if (booking.user.toString() !== userId) {
+    // Kiểm tra quyền sở hữu (Tránh lỗi 403 Forbidden)
+    if (dbUserId !== tokenUserId) {
       throw new ForbiddenException('Bạn không có quyền thực hiện hành động này.');
     }
 
+    // Bổ sung CANCELLED (mã 24) vào danh sách có thể thanh toán lại
     const repayableStatuses: BookingStatus[] = [
       BookingStatus.PENDING_PAYMENT,
       BookingStatus.FAILED,
       BookingStatus.EXPIRED,
+      BookingStatus.CANCELLED, // Người dùng hủy trên cổng VNPay vẫn cho phép trả lại
     ];
 
     if (!repayableStatuses.includes(booking.status)) {
       throw new BadRequestException(`Không thể thanh toán lại cho đơn hàng với trạng thái ${booking.status}.`);
     }
 
-    // Reset status to PENDING_PAYMENT to allow expiration logic to work again
+    // 1. Cập nhật trạng thái về PENDING_PAYMENT
     booking.status = BookingStatus.PENDING_PAYMENT;
-    // We also need to update 'createdAt' to reset the 5-minute timer
+
+    // 2. Reset thời gian tạo đơn để tính lại 15 phút hết hạn
+    // Nếu logic hết hạn của bạn dựa trên createdAt, dòng này sẽ giúp đơn hàng có thêm 15 phút mới
     booking.createdAt = new Date();
+
     await booking.save();
-    
-    // Call Payment Service to get a new URL
+
+    // 3. Gọi Payment Service để lấy URL VNPay mới
     const paymentResponse = await this.paymentService.createPayment({
-        amount: booking.totalPrice,
-        description: `Thanh toán lại cho đơn đặt sân ${booking._id.toString()}`,
-        type: 'booking',
-        referenceId: booking._id.toString(),
+      amount: booking.totalPrice,
+      description: `Thanh toán lại đơn hàng ${booking._id.toString()}`,
+      type: 'booking',
+      referenceId: booking._id.toString(),
+      origin: 'history', 
     }, userId, ipAddr);
-    
+
     return {
+      success: true,
       bookingId: booking._id,
-      paymentUrl: paymentResponse.payment.paymentUrl,
+      paymentUrl: paymentResponse.payment.paymentUrl, // Đảm bảo PaymentService trả về đúng cấu trúc này
     };
+
   }
 }

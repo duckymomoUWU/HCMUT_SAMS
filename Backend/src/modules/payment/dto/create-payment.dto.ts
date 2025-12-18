@@ -18,4 +18,8 @@ export class CreatePaymentDto {
   @IsOptional()
   @IsString()
   description?: string;
+  
+  @IsOptional()
+  @IsString()
+  origin?: string;
 }

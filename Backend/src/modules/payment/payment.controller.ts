@@ -17,7 +17,7 @@ import { Public } from '../../common/decorators/public.decorator';
 
 @Controller('payment')
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService) {}
+  constructor(private readonly paymentService: PaymentService) { }
 
   // API 1: Tạo payment mới
   // POST /payment
@@ -32,22 +32,50 @@ export class PaymentController {
 
   // API 2: VNPay callback (Public - không cần auth)
   // GET /payment/vnpay-return?vnp_xxx=xxx&vnp_yyy=yyy...
+  // @Public()
+  // @Get('vnpay-return')
+  // async vnpayReturn(@Query() query: any, @Res() res: Response) {
+  //   try {
+  //     const result = await this.paymentService.handleVNPayReturn(query);
+
+  //     // Redirect về frontend với kết quả
+  //     const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
+  //     const redirectUrl = `${frontendUrl}/client/booking?status=${result.status}&paymentId=${result.payment?.id || ''}`;
+  //     // const redirectUrl = `${frontendUrl}/payment/result?success=${result.success}&paymentId=${result.payment.id}`;
+
+  //     return res.redirect(redirectUrl);
+  //   } catch (error) {
+  //     const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
+  //     return res.redirect(
+  //       `${frontendUrl}/payment/result?success=false&error=${error.message}`,
+  //     );
+  //   }
+  // }
   @Public()
   @Get('vnpay-return')
   async vnpayReturn(@Query() query: any, @Res() res: Response) {
     try {
       const result = await this.paymentService.handleVNPayReturn(query);
-
-      // Redirect về frontend với kết quả
       const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
-      const redirectUrl = `${frontendUrl}/payment/result?success=${result.success}&paymentId=${result.payment.id}`;
+
+      // Lấy type từ kết quả trả về của service (FACILITY, EQUIPMENT,...)
+      const paymentType = result.payment?.type;
+
+      // Quyết định trang đích dựa trên loại thanh toán
+      let targetPage = '/client/booking'; // Mặc định
+      if (paymentType === 'EQUIPMENT') {
+        targetPage = '/client/equipment'; // Giả sử đây là trang thiết bị
+      } else if (paymentType === 'FACILITY') {
+        targetPage = '/client/booking';
+      }
+
+      const redirectUrl = `${frontendUrl}${targetPage}?success=${result.success}&status=${result.status}&paymentId=${result.payment?.id || ''}`;
 
       return res.redirect(redirectUrl);
     } catch (error) {
       const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
-      return res.redirect(
-        `${frontendUrl}/payment/result?success=false&error=${error.message}`,
-      );
+      // Nếu lỗi, trả về trang lịch sử chung để an toàn
+      return res.redirect(`${frontendUrl}/client/booking-history?status=failed`);
     }
   }
 

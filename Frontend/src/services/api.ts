@@ -1,3 +1,4 @@
+// Frontend
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import authService from './authService';
 
@@ -62,7 +63,6 @@ api.interceptors.response.use(
     // If 401 error and haven't retried yet
     if (error.response?.status === 401 && !originalRequest._retry) {
       console.log("Caught 401. Attempting to refresh token.");
-      // If already refreshing, queue this request
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });

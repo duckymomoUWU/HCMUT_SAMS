@@ -19,9 +19,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   useEffect(() => {
     const checkAuth = async () => {
       const authenticated = authService.isAuthenticated();
+      const token = localStorage.getItem('token'); // Lấy trực tiếp từ ổ cứng
 
-      if (!authenticated) {
-        // Token không hợp lệ hoặc đã hết hạn
+      if (!authenticated && !token) { 
+        // Nếu không có cả session lẫn token vật lý thì mới coi là không hợp lệ
         setIsValid(false);
         setIsChecking(false);
         return;
@@ -30,7 +31,18 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       // Check role nếu cần
       if (requiredRole) {
         const user = authService.getCurrentUser();
-        if (!user || !requiredRole.includes(user.role)) {
+        
+        // Nếu có token nhưng User chưa kịp load (do reload trang)
+        // Chúng ta nên cho phép qua nếu đang ở luồng thanh toán
+        const isPaymentReturn = window.location.pathname.includes('payment/result');
+
+        if (!user && !isPaymentReturn) {
+            setIsValid(false);
+            setIsChecking(false);
+            return;
+        }
+
+        if (user && !requiredRole.includes(user.role)) {
           setIsValid(false);
           setIsChecking(false);
           return;
