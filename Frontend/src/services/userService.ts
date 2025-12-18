@@ -24,6 +24,7 @@ export interface DashboardStats {
         id: string;
         type: string;
         equipment: { _id: string; name: string; type: string } | null;
+        facility: { _id: string; name: string } | null;
         date: string;
         status: string;
         totalPrice: number;

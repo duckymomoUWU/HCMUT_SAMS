@@ -36,7 +36,8 @@ class EquipmentRentalService {
 
   async getMyRentals(): Promise<EquipmentRental[]> {
     const response = await api.get("/equipment-rental/my-rentals");
-    return response.data;
+    // Backend trả về array trực tiếp
+    return Array.isArray(response.data) ? response.data : response.data.rentals || [];
   }
 
   async getRentalById(id: string): Promise<EquipmentRental> {

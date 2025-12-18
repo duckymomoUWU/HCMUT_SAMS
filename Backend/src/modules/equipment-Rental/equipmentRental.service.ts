@@ -152,8 +152,9 @@ export class EquipmentRentalService {
   async findByUser(userId: string) {
     console.log('🔵 Finding rentals for user:', userId);
 
+    const userObjectId = new Types.ObjectId(userId);
     const rentals = await this.rentalModel
-      .find({ userId })
+      .find({ userId: userObjectId })
       .populate('equipmentId', 'name type pricePerHour imageUrl description') // ← Chỉ lấy fields cần thiết
       .populate('items', 'serialNumber status') // ← Chỉ lấy fields cần thiết
       .populate('userId', 'fullName email') // ← Thêm user info

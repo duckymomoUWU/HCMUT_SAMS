@@ -114,7 +114,7 @@ const Dashboard = () => {
       {/* Stats overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         <StatCard
-          title="Thuê thiết bị tháng này"
+          title="Hoạt động gần đây"
           value={String(stats?.bookingsThisMonth || 0)}
           colorClass="text-blue-600"
           icon={<CalendarClock className="w-5 h-5 text-blue-600" />} 
@@ -182,7 +182,10 @@ const Dashboard = () => {
                   {getStatusIcon(activity.status)}
                   <div className="flex-1">
                     <p className="font-medium text-gray-800">
-                      {activity.equipment?.name || "Thiết bị"} - {getStatusText(activity.status)}
+                      {activity.type === 'booking' 
+                        ? (activity.facility?.name || "Sân") 
+                        : (activity.equipment?.name || "Thiết bị")} 
+                      {' '}- {getStatusText(activity.status)}
                     </p>
                     <p className="text-gray-600 text-xs">
                       {formatDate(activity.date)} • {activity.totalPrice.toLocaleString("vi-VN")} ₫

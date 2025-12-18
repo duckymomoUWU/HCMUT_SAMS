@@ -6,12 +6,16 @@ import {
   EquipmentRental,
   EquipmentRentalDocument,
 } from '../equipment-Rental/schemas/equipment-rental.schema';
+import { Booking, BookingDocument } from '../booking/schemas/booking.schema';
+
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(EquipmentRental.name)
     private rentalModel: Model<EquipmentRentalDocument>,
+    @InjectModel(Booking.name)
+    private bookingModel: Model<BookingDocument>,
   ) {}
 
   async findAll(): Promise<User[]> {
@@ -63,6 +67,7 @@ export class UsersService {
     // Convert userId to ObjectId for queries
     const userObjectId = new Types.ObjectId(userId);
 
+    // ============ EQUIPMENT RENTAL ============
     // Đếm số lần thuê thiết bị trong tháng
     const rentalsThisMonth = await this.rentalModel.countDocuments({
       userId: userObjectId,
@@ -75,32 +80,95 @@ export class UsersService {
       status: 'renting',
     });
 
-    // Tính tổng chi tiêu trong tháng
-    const spendingResult = await this.rentalModel.aggregate([
-      {
-        $match: {
-          userId: userObjectId,
-          rentalDate: { $gte: startOfMonth, $lte: endOfMonth },
-          status: { $ne: 'cancelled' },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$totalPrice' },
-        },
-      },
-    ]);
-    const spendingThisMonth = spendingResult[0]?.total || 0;
+    // ============ BOOKING ============
+    // Đếm số lần đặt sân trong tháng
+    const bookingsThisMonth = await this.bookingModel.countDocuments({
+      userId: userObjectId,
+      date: { $gte: startOfMonth, $lte: endOfMonth },
+    });
 
-    // Lấy các hoạt động gần đây (5 gần nhất)
-    const recentActivities = await this.rentalModel
+    // Tính tổng chi tiêu trong tháng (Equipment + Booking)
+    const [rentalSpending, bookingSpending] = await Promise.all([
+      this.rentalModel.aggregate([
+        {
+          $match: {
+            userId: userObjectId,
+            rentalDate: { $gte: startOfMonth, $lte: endOfMonth },
+            status: { $ne: 'cancelled' },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$totalPrice' },
+          },
+        },
+      ]),
+      this.bookingModel.aggregate([
+        {
+          $match: {
+            userId: userObjectId,
+            date: { $gte: startOfMonth, $lte: endOfMonth },
+            paymentStatus: 'completed',
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$totalPrice' },
+          },
+        },
+      ]),
+    ]);
+
+    const spendingThisMonth =
+      (rentalSpending[0]?.total || 0) + (bookingSpending[0]?.total || 0);
+
+    // ============ RECENT ACTIVITIES (GỘP BOOKING + RENTAL) ============
+    // Lấy 5 hoạt động gần nhất từ Booking
+    const recentBookings = (await this.bookingModel
       .find({ userId: userObjectId })
       .sort({ createdAt: -1 })
       .limit(5)
-      .populate('equipmentId', 'name type');
+      .populate('facilityId', 'name')
+      .lean()
+      .exec()) as any[];
 
-    // Lấy lịch sắp tới (thiết bị đang thuê)
+    // Lấy 5 hoạt động gần nhất từ EquipmentRental
+    const recentRentals = (await this.rentalModel
+      .find({ userId: userObjectId })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('equipmentId', 'name type')
+      .lean()
+      .exec()) as any[];
+
+    // Gộp & sort theo createdAt, lấy 5 gần nhất
+    const allActivities = [
+      ...recentBookings.map((b) => ({
+        id: b._id,
+        type: 'booking',
+        facility: b.facilityId,
+        date: b.date,
+        status: b.status,
+        totalPrice: b.price,
+        createdAt: b.createdAt,
+      })),
+      ...recentRentals.map((r) => ({
+        id: r._id,
+        type: 'equipment-rental',
+        equipment: r.equipmentId,
+        date: r.rentalDate,
+        status: r.status,
+        totalPrice: r.totalPrice,
+        createdAt: r.createdAt,
+      })),
+    ]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 5);
+
+    // ============ UPCOMING RENTALS ============
+    // Lấy thiết bị đang thuê
     const upcomingRentals = await this.rentalModel
       .find({
         userId: userObjectId,
@@ -111,17 +179,18 @@ export class UsersService {
       .populate('equipmentId', 'name type');
 
     return {
-      bookingsThisMonth: rentalsThisMonth,
+      bookingsThisMonth: bookingsThisMonth + rentalsThisMonth,
       activeRentals,
       spendingThisMonth,
       penaltyPoints: user.penaltyPoints || 0,
-      recentActivities: recentActivities.map((r) => ({
-        id: r._id,
-        type: 'equipment-rental',
-        equipment: r.equipmentId,
-        date: r.rentalDate,
-        status: r.status,
-        totalPrice: r.totalPrice,
+      recentActivities: allActivities.map((a: any) => ({
+        id: a.id,
+        type: a.type,
+        equipment: a.equipment || null,
+        facility: a.facility || null,
+        date: a.date,
+        status: a.status,
+        totalPrice: a.totalPrice,
       })),
       upcomingRentals: upcomingRentals.map((r) => ({
         id: r._id,

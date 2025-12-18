@@ -7,11 +7,14 @@ import {
   EquipmentRental,
   EquipmentRentalSchema,
 } from '../equipment-Rental/schemas/equipment-rental.schema';
+import { Booking, BookingSchema } from '../booking/schemas/booking.schema';
+
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: EquipmentRental.name, schema: EquipmentRentalSchema },
+      { name: Booking.name, schema: BookingSchema },
     ]),
   ],
   controllers: [UsersController],
