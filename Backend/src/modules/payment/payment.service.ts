@@ -14,6 +14,12 @@ import {
   EquipmentRentalDocument,
 } from '../equipment-Rental/schemas/equipment-rental.schema';
 import { EquipmentRentalStatus } from '../equipment-Rental/schemas/equipment-rental.schema';
+import {
+  Booking,
+  BookingDocument,
+  BookingStatus,
+  PaymentStatus,
+} from '../booking/schemas/booking.schema';
 
 @Injectable()
 export class PaymentService {
@@ -22,6 +28,8 @@ export class PaymentService {
     private paymentModel: Model<PaymentDocument>,
     @InjectModel(EquipmentRental.name)
     private rentalModel: Model<EquipmentRentalDocument>,
+    @InjectModel(Booking.name)
+    private bookingModel: Model<BookingDocument>,
     private configService: ConfigService,
   ) {}
 
@@ -149,9 +157,8 @@ export class PaymentService {
 
       console.log('✅ Payment successful');
 
-      // ✅ FIX 1: Support cả "rental" và "equipment-rental"
-      // ✅ FIX 2: Update cả paymentId VÀ status
-      if(payment.type === 'equipment-rental' && payment.referenceId) {
+      // ✅ Xử lý cho EQUIPMENT RENTAL
+      if (payment.type === 'equipment-rental' && payment.referenceId) {
         console.log('🔵 Updating rental status...');
 
         const updatedRental = await this.rentalModel.findByIdAndUpdate(
@@ -173,6 +180,32 @@ export class PaymentService {
           console.warn('⚠️ Rental not found:', payment.referenceId);
         }
       }
+
+      // ✅ Xử lý cho BOOKING ĐẶT SÂN
+      if (payment.type === 'booking' && payment.referenceId) {
+        console.log('🔵 Updating booking status...');
+
+        const updatedBooking = await this.bookingModel.findByIdAndUpdate(
+          payment.referenceId,
+          {
+            paymentId: payment._id,
+            paymentStatus: PaymentStatus.PAID,
+            status: BookingStatus.CONFIRMED, // ← Chuyển sang "confirmed"
+          },
+          { new: true },
+        );
+
+        if (updatedBooking) {
+          console.log('✅ Booking updated:', {
+            id: updatedBooking._id,
+            status: updatedBooking.status,
+            paymentStatus: updatedBooking.paymentStatus,
+            paymentId: updatedBooking.paymentId,
+          });
+        } else {
+          console.warn('⚠️ Booking not found:', payment.referenceId);
+        }
+      }
     } else {
       // Thanh toán thất bại
       payment.status = 'failed';
@@ -190,6 +223,14 @@ export class PaymentService {
       ) {
         await this.rentalModel.findByIdAndUpdate(payment.referenceId, {
           status: EquipmentRentalStatus.CANCELLED,
+        });
+      }
+
+      // Optional: Cancel booking if payment failed
+      if (payment.type === 'booking' && payment.referenceId) {
+        await this.bookingModel.findByIdAndUpdate(payment.referenceId, {
+          status: BookingStatus.CANCELLED,
+          paymentStatus: PaymentStatus.UNPAID,
         });
       }
     }

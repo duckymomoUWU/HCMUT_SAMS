@@ -3,3 +3,4 @@
 export { authService } from "./authService";
 export { default as equipmentService } from "./equipmentService";
 export { default as equipmentRentalService } from "./equipmentRentalService";
+export { default as bookingService } from "./bookingService";

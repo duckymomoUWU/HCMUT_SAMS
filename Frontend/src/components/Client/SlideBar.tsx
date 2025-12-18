@@ -5,13 +5,15 @@ import {
   Package,
   History,
   UserCircle2,
+  MapPin,
 } from "lucide-react";
 
 const menu = [
   { name: "Tổng quan", path: "/client", icon: <LayoutDashboard size={18} /> },
   { name: "Đặt sân", path: "/client/booking", icon: <CalendarClock size={18} /> },
+  { name: "Lịch sử đặt sân", path: "/client/court-booking-history", icon: <MapPin size={18} /> },
   { name: "Thuê thiết bị", path: "/client/equipment-rental", icon: <Package size={18} /> },
-  { name: "Lịch sử", path: "/client/booking-history", icon: <History size={18} /> },
+  { name: "Lịch sử thuê đồ", path: "/client/booking-history", icon: <History size={18} /> },
   { name: "Hồ sơ cá nhân", path: "/client/profile", icon: <UserCircle2 size={18} /> },
 ];
 

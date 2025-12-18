@@ -16,6 +16,7 @@ import VerifyOtpPage from "../pages/Auth/VerifyOtpPage";
 import ClientDashboard from "../pages/Client/Dashboard";
 import Booking from "../pages/Client/Booking";
 import BookingHistory from "../pages/Client/BookingHistory";
+import CourtBookingHistory from "../pages/Client/CourtBookingHistory";
 import Profile from "../pages/Client/Profile";
 import EquipmentRental from "../pages/Client/EquipmentRental";
 
@@ -64,6 +65,7 @@ export const AppRoutes = () => {
         <Route index element={<ClientDashboard />} />
         <Route path="booking" element={<Booking />} />
         <Route path="booking-history" element={<BookingHistory />} />
+        <Route path="court-booking-history" element={<CourtBookingHistory />} />
         <Route path="profile" element={<Profile />} />
         <Route path="equipment-rental" element={<EquipmentRental />} />
         {/* <Route path="payment" element={<Payment />} /> */}

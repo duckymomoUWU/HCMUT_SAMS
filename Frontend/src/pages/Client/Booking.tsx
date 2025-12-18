@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { CalendarDays, Clock, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CalendarDays, Clock, CheckCircle2, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/Admin/PageHeader";
 import StatCard from "@/components/Admin/StatCard";
@@ -7,34 +7,122 @@ import Calendar from "react-calendar";
 import "react-calendar/dist/calendar.css";
 import "@/pages/Client/calendar.css";
 import api from "@/lib/Axios";
+import bookingService, { type CourtBooking } from "@/services/bookingService";
+
 const Booking = () => {
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState({
+    total: 0,
+    confirmed: 0,
+    pending: 0,
+    cancelled: 0,
+  });
 
-  const slots = [
-    { time: "07:00 - 08:00", price: 180000, status: "available" },
-    { time: "08:00 - 09:00", price: 180000, status: "available" },
-    { time: "09:00 - 10:00", price: 180000, status: "booked" },
-    { time: "10:00 - 11:00", price: 180000, status: "maintenance" },
-    { time: "13:00 - 14:00", price: 180000, status: "available" },
-    { time: "14:00 - 15:00", price: 180000, status: "available" },
-    { time: "15:00 - 16:00", price: 180000, status: "booked" },
-    { time: "16:00 - 17:00", price: 180000, status: "available" },
-    { time: "17:00 - 18:00", price: 180000, status: "available" },
-    { time: "18:00 - 19:00", price: 180000, status: "booked" },
-    { time: "19:00 - 20:00", price: 180000, status: "available" },
-    { time: "20:00 - 21:00", price: 180000, status: "available" },
-  ];
+  // Facility info (có thể mở rộng để chọn nhiều sân)
+  const facilityId = "facility-default";
+  const facilityName = "Sân thể thao đa năng";
+  const facilityLocation = "Khu A - ĐHBK";
+  const pricePerHour = 180000;
 
-  const stats = [
-    { id: 1, title: "Tổng số đơn đặt", value: "42" },
-    { id: 2, title: "Đơn đã duyệt", value: "35" },
-    { id: 3, title: "Đơn đang xử lý", value: "5" },
-    { id: 4, title: "Đơn bị hủy", value: "2" },
-  ];
+  // Generate slots từ 7h đến 21h
+  const generateSlots = () => {
+    const baseSlots = [];
+    const now = new Date();
+    
+    // So sánh ngày (không tính giờ)
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const selectedDayStart = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()).getTime();
+    
+    const isToday = selectedDayStart === todayStart;
+    const isPastDay = selectedDayStart < todayStart;
+    
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+
+    for (let hour = 7; hour <= 20; hour++) {
+      const timeStr = `${String(hour).padStart(2, "0")}:00 - ${String(hour + 1).padStart(2, "0")}:00`;
+      
+      // Check if slot is in the past
+      let isPast = false;
+      
+      // Nếu ngày đã qua → tất cả slot đều past
+      if (isPastDay) {
+        isPast = true;
+      }
+      // Nếu là hôm nay → check giờ
+      else if (isToday) {
+        // Slot đã qua nếu giờ hiện tại >= giờ bắt đầu slot
+        isPast = currentHour > hour || (currentHour === hour && currentMinute > 0);
+      }
+      // Nếu ngày tương lai → không past
+
+      let status = "available";
+      if (bookedSlots.includes(timeStr)) {
+        status = "booked";
+      } else if (isPast) {
+        status = "past";
+      }
+
+      baseSlots.push({
+        time: timeStr,
+        price: pricePerHour,
+        status,
+      });
+    }
+    return baseSlots;
+  };
+
+  const slots = generateSlots();
+
+  // Fetch stats khi component mount
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const bookings = await bookingService.getMyBookings();
+        setStats({
+          total: bookings.length,
+          confirmed: bookings.filter((b) => b.status === "confirmed").length,
+          pending: bookings.filter((b) => b.status === "pending").length,
+          cancelled: bookings.filter((b) => b.status === "cancelled").length,
+        });
+      } catch (error) {
+        console.error("Failed to fetch stats:", error);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  // Fetch booked slots khi đổi ngày
+  useEffect(() => {
+    const fetchBookedSlots = async () => {
+      try {
+        setLoading(true);
+        // Format date theo local timezone (YYYY-MM-DD)
+        const year = selectedDate.getFullYear();
+        const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+        const day = String(selectedDate.getDate()).padStart(2, "0");
+        const dateStr = `${year}-${month}-${day}`;
+        
+        const booked = await bookingService.getBookedSlots(facilityId, dateStr);
+        setBookedSlots(booked);
+        setSelectedSlot(null); // Reset selection khi đổi ngày
+      } catch (error) {
+        console.error("Failed to fetch booked slots:", error);
+        setBookedSlots([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookedSlots();
+  }, [selectedDate]);
 
   const handleBookingSubmit = async () => {
     if (selectedSlot === null) {
@@ -45,41 +133,48 @@ const Booking = () => {
     setIsProcessing(true);
 
     try {
-      // Dữ liệu booking giả lập (sau này sẽ connect với facility API thật)
-      const bookingData = {
-        facilityId: "mock-facility-id",
-        date: selectedDate.toISOString(),
+      // Format date theo local timezone (YYYY-MM-DD)
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+      const day = String(selectedDate.getDate()).padStart(2, "0");
+      const dateStr = `${year}-${month}-${day}`;
+
+      // Bước 1: Tạo booking thật
+      console.log("🔵 Creating booking...", { dateStr, timeSlot: slots[selectedSlot].time });
+      const bookingResponse = await bookingService.createBooking({
+        facilityId,
+        facilityName,
+        facilityLocation,
+        date: dateStr,
         timeSlot: slots[selectedSlot].time,
         price: slots[selectedSlot].price,
-      };
-
-      // Bước 1: Tạo booking (tạm thời skip - chưa có API)
-      // const bookingResponse = await api.post('/booking', bookingData);
-      // const bookingId = bookingResponse.data.booking.id;
-
-      // Tạm thời dùng mock bookingId
-      const mockBookingId = `BOOKING_${Date.now()}`;
-
-      // Format date không dấu cho VNPay
-      const dateStr = selectedDate.toLocaleDateString('en-GB'); // DD/MM/YYYY
-
-      // Bước 2: Tạo payment
-      const paymentResponse = await api.post('/payment', {
-        type: 'booking',
-        referenceId: mockBookingId,
-        amount: slots[selectedSlot].price,
-        description: `Thanh toan dat san ngay ${dateStr} - ${slots[selectedSlot].time}`,
       });
 
-      // Bước 3: Lấy URL VNPay
-      const paymentUrl = paymentResponse.data.payment.paymentUrl;
+      const bookingId = bookingResponse.booking._id;
+      console.log("✅ Booking created:", bookingId);
 
-      // Bước 4: Redirect sang VNPay
+      // Format date không dấu cho VNPay
+      const dateDisplay = selectedDate.toLocaleDateString("en-GB"); // DD/MM/YYYY
+
+      // Bước 2: Tạo payment
+      console.log("🔵 Creating payment...");
+      const paymentResponse = await api.post("/payment", {
+        type: "booking",
+        referenceId: bookingId,
+        amount: slots[selectedSlot].price,
+        description: `Thanh toan dat san ${facilityName} ngay ${dateDisplay} - ${slots[selectedSlot].time}`,
+      });
+
+      // Bước 3: Lấy URL VNPay và redirect
+      const paymentUrl = paymentResponse.data.paymentUrl;
+      console.log("✅ Redirecting to VNPay...");
       window.location.href = paymentUrl;
-
     } catch (error: any) {
-      console.error('Lỗi khi đặt sân:', error);
-      alert(error.response?.data?.message || 'Có lỗi xảy ra khi đặt sân. Vui lòng thử lại.');
+      console.error("Lỗi khi đặt sân:", error);
+      alert(
+        error.response?.data?.message ||
+          "Có lỗi xảy ra khi đặt sân. Vui lòng thử lại."
+      );
       setIsProcessing(false);
     }
   };
@@ -93,9 +188,10 @@ const Booking = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((s) => (
-          <StatCard key={s.id} title={s.title} value={s.value} />
-        ))}
+        <StatCard title="Tổng số đơn đặt" value={String(stats.total)} />
+        <StatCard title="Đơn đã xác nhận" value={String(stats.confirmed)} />
+        <StatCard title="Đơn chờ thanh toán" value={String(stats.pending)} />
+        <StatCard title="Đơn bị hủy" value={String(stats.cancelled)} />
       </div>
 
       {/* Lịch + Khung giờ */}
@@ -138,32 +234,43 @@ const Booking = () => {
           </h3>
 
           <div className="grid grid-cols-3 gap-3">
-            {slots.map((slot, index) => {
-              const isSelected = selectedSlot === index;
-              const isBooked = slot.status === "booked";
-              const isMaintenance = slot.status === "maintenance";
+            {loading ? (
+              <div className="col-span-3 flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+              </div>
+            ) : (
+              slots.map((slot, index) => {
+                const isSelected = selectedSlot === index;
+                const isBooked = slot.status === "booked";
+                const isPast = slot.status === "past";
+                const isDisabled = isBooked || isPast;
 
-              return (
-                <button
-                  key={slot.time}
-                  onClick={() =>
-                    !isBooked && !isMaintenance && setSelectedSlot(index)
-                  }
-                  disabled={isBooked || isMaintenance}
-                  className={`rounded-md border py-2 text-sm font-medium transition ${
-                    isBooked
-                      ? "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400"
-                      : isMaintenance
-                        ? "cursor-not-allowed border-yellow-100 bg-yellow-50 text-yellow-700"
-                        : isSelected
-                          ? "border-blue-600 bg-blue-600 text-white"
-                          : "bg-gray-50 text-gray-700 hover:border-blue-400 hover:bg-blue-50"
-                  } `}
-                >
-                  {slot.time}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={slot.time}
+                    onClick={() => !isDisabled && setSelectedSlot(index)}
+                    disabled={isDisabled}
+                    className={`rounded-md border py-2 text-sm font-medium transition ${
+                      isBooked
+                        ? "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400"
+                        : isPast
+                          ? "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-300 line-through"
+                          : isSelected
+                            ? "border-blue-600 bg-blue-600 text-white"
+                            : "bg-gray-50 text-gray-700 hover:border-blue-400 hover:bg-blue-50"
+                    } `}
+                  >
+                    {slot.time}
+                    {isBooked && (
+                      <span className="block text-xs text-gray-400">Đã đặt</span>
+                    )}
+                    {isPast && (
+                      <span className="block text-xs text-gray-300">Đã qua</span>
+                    )}
+                  </button>
+                );
+              })
+            )}
           </div>
 
           {selectedSlot !== null && (
@@ -189,6 +296,14 @@ const Booking = () => {
 
             <div className="space-y-2 text-sm text-gray-700">
               <p>
+                <span className="font-medium text-gray-500">Sân:</span>{" "}
+                {facilityName}
+              </p>
+              <p>
+                <span className="font-medium text-gray-500">Vị trí:</span>{" "}
+                {facilityLocation}
+              </p>
+              <p>
                 <span className="font-medium text-gray-500">Ngày đặt:</span>{" "}
                 {selectedDate.toLocaleDateString("vi-VN", {
                   weekday: "long",
@@ -204,10 +319,6 @@ const Booking = () => {
               <p>
                 <span className="font-medium text-gray-500">Thời lượng:</span>{" "}
                 1.0 giờ
-              </p>
-              <p>
-                <span className="font-medium text-gray-500">Loại sân:</span> Sân
-                thể thao đa năng
               </p>
             </div>
 
