@@ -5,25 +5,155 @@ import {
   Package,
   DollarSign,
   Activity,
-  BarChart3,
   Dumbbell,
   Clock,
+  X,
+  User,
 } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
 
 import equipmentService, {
   type GroupedEquipment,
 } from "@/services/equipmentService";
+import bookingService, { type CourtBooking } from "@/services/bookingService";
 import { useEffect, useState } from "react";
 
+// --- HELPER FUNCTIONS ---
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(amount);
+};
+
+// Helper lấy tên User
+const getUserName = (user: any) => {
+  if (!user) return "Khách vãng lai";
+  if (typeof user === "object" && user.fullName) {
+    return user.fullName;
+  }
+  return `User: ${String(user).slice(-4)}`;
+};
+
+const getStatusConfig = (status: string) => {
+  switch (status) {
+    case "confirmed":
+    case "completed":
+    case "paid":
+      return { text: "Đã xác nhận", color: "bg-green-100 text-green-700" };
+    case "pending":
+      return { text: "Chờ xử lý", color: "bg-yellow-100 text-yellow-700" };
+    case "cancelled":
+      return { text: "Đã hủy", color: "bg-red-100 text-red-700" };
+    case "no_show":
+      return { text: "Vắng mặt", color: "bg-gray-100 text-gray-700" };
+    default:
+      return { text: status, color: "bg-gray-100 text-gray-700" };
+  }
+};
+
+// --- MODAL COMPONENT ---
+interface BookingModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  bookings: CourtBooking[];
+}
+
+const BookingModal = ({
+  isOpen,
+  onClose,
+  title,
+  bookings,
+}: BookingModalProps) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="relative flex max-h-[85vh] w-full max-w-4xl flex-col rounded-xl bg-white shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-gray-100 p-6">
+          <h3 className="text-xl font-bold text-gray-800">{title}</h3>
+          <button
+            onClick={onClose}
+            className="rounded-full p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {bookings.length === 0 ? (
+            <p className="py-8 text-center text-gray-500">Không có dữ liệu.</p>
+          ) : (
+            <div className="space-y-4">
+              {bookings.map((b) => {
+                const statusConfig = getStatusConfig(b.status);
+                return (
+                  <div
+                    key={b._id}
+                    className="flex flex-col justify-between gap-4 rounded-lg border border-gray-100 bg-gray-50 p-4 transition hover:bg-white hover:shadow-md sm:flex-row sm:items-center"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-blue-700">
+                          {b.timeSlot}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          {new Date(b.date).toLocaleDateString("vi-VN")}
+                        </span>
+                      </div>
+                      <p className="mt-1 font-medium text-gray-800">
+                        {b.facilityName}
+                      </p>
+                      {/* Hiển thị tên user trong Modal */}
+                      <div className="mt-1 flex items-center gap-1 text-sm text-gray-600">
+                        <User className="h-3 w-3" />
+                        <span className="font-medium text-blue-600">
+                          {getUserName(b.userId)}
+                        </span>
+                      </div>
+                      {b.notes && (
+                        <p className="mt-1 text-xs text-gray-500 italic">
+                          Ghi chú: {b.notes}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex min-w-[120px] items-center justify-between gap-4 sm:justify-end">
+                      <div className="text-right">
+                        <span
+                          className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${statusConfig.color}`}
+                        >
+                          {statusConfig.text}
+                        </span>
+                        <p className="mt-1 font-bold text-gray-800">
+                          {formatCurrency(b.price)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end rounded-b-xl border-t border-gray-100 bg-gray-50 p-4">
+          <button
+            onClick={onClose}
+            className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-300"
+          >
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- MAIN COMPONENT ---
 const Dashboard = () => {
   const [availableEquipments, setAvailableEquipments] = useState<
     GroupedEquipment[]
@@ -34,6 +164,17 @@ const Dashboard = () => {
   const [maintenanceEquipments, setMaintenanceEquipments] = useState<
     GroupedEquipment[]
   >([]);
+
+  const [todayBookings, setTodayBookings] = useState<CourtBooking[]>([]);
+  const [allRecentBookings, setAllRecentBookings] = useState<CourtBooking[]>(
+    [],
+  );
+
+  const [revenueToday, setRevenueToday] = useState(0);
+  const [bookedSlotsCount, setBookedSlotsCount] = useState(0);
+
+  const [modalOpen, setModalOpen] = useState(false);
+
   useEffect(() => {
     equipmentService
       .getAllGroupedEquipment("available")
@@ -42,7 +183,50 @@ const Dashboard = () => {
     equipmentService
       .getAllGroupedEquipment("maintenance")
       .then(setMaintenanceEquipments);
+
+    const fetchBookingData = async () => {
+      try {
+        const today = new Date().toISOString().split("T")[0];
+
+        const bookingsTodayData = await bookingService.getAllBookings({
+          date: today,
+        });
+        setTodayBookings(bookingsTodayData);
+
+        const validBookings = bookingsTodayData.filter(
+          (b) => b.status !== "cancelled",
+        );
+        setBookedSlotsCount(validBookings.length);
+
+        const revenue = validBookings.reduce((sum, b) => {
+          if (
+            b.paymentStatus === "paid" ||
+            b.status === "completed" ||
+            b.status === "confirmed"
+          ) {
+            return sum + b.price;
+          }
+          return sum;
+        }, 0);
+        setRevenueToday(revenue);
+
+        const allRecent = await bookingService.getAllBookings();
+        setAllRecentBookings(allRecent);
+      } catch (error) {
+        console.error("Failed to fetch dashboard booking data", error);
+      }
+    };
+
+    fetchBookingData();
   }, []);
+
+  const openRecentModal = () => {
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+  };
 
   const totalRented = rentedEquipments.reduce((sum, e) => sum + e.total, 0);
   const totalAvailable = availableEquipments.reduce(
@@ -53,13 +237,17 @@ const Dashboard = () => {
     (sum, e) => sum + e.total,
     0,
   );
+  const TOTAL_SLOTS_PER_DAY = 12;
+  const utilizationRate = Math.round(
+    (bookedSlotsCount / TOTAL_SLOTS_PER_DAY) * 100,
+  );
 
   const stats = [
     {
       id: 1,
       title: "Khung giờ đã đặt hôm nay",
-      value: "8/12",
-      note: "+2 từ hôm qua",
+      value: `${bookedSlotsCount}/${TOTAL_SLOTS_PER_DAY}`,
+      note: "Số liệu thực tế",
       color: "text-blue-600",
       icon: (
         <div className="rounded-lg bg-blue-50 p-2">
@@ -70,7 +258,7 @@ const Dashboard = () => {
     {
       id: 2,
       title: "Thiết bị đang sử dụng",
-      value: `${totalRented}/${totalAvailable}`,
+      value: `${totalRented}/${totalAvailable + totalRented + totalMaintenance}`,
       note: `${totalMaintenance} thiết bị đang bảo trì`,
       color: "text-green-600",
       icon: (
@@ -82,8 +270,8 @@ const Dashboard = () => {
     {
       id: 3,
       title: "Doanh thu hôm nay",
-      value: "1.1Tr VND",
-      note: "+15%",
+      value: formatCurrency(revenueToday),
+      note: "Đã xác nhận/Thanh toán",
       color: "text-yellow-600",
       icon: (
         <div className="rounded-lg bg-yellow-50 p-2">
@@ -94,8 +282,8 @@ const Dashboard = () => {
     {
       id: 4,
       title: "Tỉ lệ sử dụng sân",
-      value: "67%",
-      note: "8/12 khung giờ sân",
+      value: `${utilizationRate}%`,
+      note: "Dựa trên slot đã đặt",
       color: "text-purple-600",
       icon: (
         <div className="rounded-lg bg-purple-50 p-2">
@@ -105,77 +293,14 @@ const Dashboard = () => {
     },
   ];
 
-  const chartData = [
-    { day: "T2", bookings: 6 },
-    { day: "T3", bookings: 7 },
-    { day: "T4", bookings: 5 },
-    { day: "T5", bookings: 9 },
-    { day: "T6", bookings: 5 },
-    { day: "T7", bookings: 4 },
-    { day: "CN", bookings: 3 },
-  ];
-
-  const bookings = [
-    {
-      time: "06:00 - 08:00",
-      name: "Nguyễn Văn A",
-      date: "04/10/2025",
-      status: "Đã xác nhận",
-      color: "bg-green-100 text-green-700",
-      price: "200,000 VND",
-    },
-    {
-      time: "06:00 - 08:00",
-      name: "Nguyễn Văn A",
-      date: "04/10/2025",
-      status: "Chờ xử lí",
-      color: "bg-yellow-100 text-yellow-700",
-      price: "200,000 VND",
-    },
-    {
-      time: "06:00 - 08:00",
-      name: "Nguyễn Văn A",
-      date: "04/10/2025",
-      status: "Đã hủy",
-      color: "bg-red-100 text-red-700",
-      price: "200,000 VND",
-    },
-  ];
-
-  const schedules = [
-    {
-      time: "06:00 - 08:00",
-      name: "Nguyễn Văn A - Bóng đá",
-      status: "Đang sử dụng",
-      color: "bg-blue-100 text-blue-700",
-    },
-    {
-      time: "08:00 - 10:00",
-      name: "Nguyễn Văn A - Bóng đá",
-      status: "Trống",
-      color: "bg-green-100 text-green-700",
-    },
-    {
-      time: "10:00 - 12:00",
-      name: "Nguyễn Văn A - Bóng đá",
-      status: "Chờ xác nhận",
-      color: "bg-yellow-100 text-yellow-700",
-    },
-    {
-      time: "14:00 - 16:00",
-      name: "Nguyễn Văn A - Bóng đá",
-      status: "Bảo trì",
-      color: "bg-red-100 text-red-700",
-    },
-  ];
-
   return (
     <div className="flex flex-col gap-8 pt-4">
       <PageHeader
         title="Tổng quan"
         subtitle="Theo dõi tình hình thiết bị và sân trong ngày"
       />
-      {/* Thẻ thống kê */}
+
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((item) => (
           <StatCard
@@ -189,55 +314,89 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Biểu đồ + tình trạng thiết bị */}
+      {/* Main Content Grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Biểu đồ */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-800">
-              <BarChart3 className="h-5 w-5 text-blue-600" />
-              Slot sân trong tuần
+        {/* === WIDGET: Đặt lịch mới nhất === */}
+        <div className="flex h-full flex-col rounded-xl border border-gray-300 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <Clock className="h-5 w-5 text-gray-700" />
+            <h2 className="text-lg font-semibold text-gray-800">
+              Đặt lịch mới nhất
             </h2>
-            <span className="text-sm text-gray-500">
-              Số booking theo từng ngày
-            </span>
           </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="bookings" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="flex-1 space-y-3">
+            {allRecentBookings.length === 0 ? (
+              <p className="py-4 text-center text-sm text-gray-500">
+                Chưa có đơn đặt sân nào.
+              </p>
+            ) : (
+              // Chỉ hiển thị tối đa 3 items
+              allRecentBookings.slice(0, 3).map((b) => {
+                const statusConfig = getStatusConfig(b.status);
+                return (
+                  <div
+                    key={b._id}
+                    className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-4"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-700">{b.timeSlot}</p>
+                      <p className="text-sm text-gray-600">{b.facilityName}</p>
+                      <p className="mt-1 flex items-center gap-1 text-sm font-medium text-blue-600">
+                        <User className="h-3 w-3" />
+                        {getUserName(b.userId)}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-400">
+                        {new Date(b.date).toLocaleDateString("vi-VN")}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs font-medium ${statusConfig.color}`}
+                      >
+                        {statusConfig.text}
+                      </span>
+                      <p className="mt-2 text-sm font-semibold text-gray-700">
+                        {formatCurrency(b.price)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          <div
+            onClick={openRecentModal}
+            className="mt-4 cursor-pointer rounded-md border border-gray-300 py-2 text-center text-sm font-medium text-gray-800 transition select-none hover:bg-gray-50 active:bg-gray-100"
+          >
+            Xem tất cả ({allRecentBookings.length})
           </div>
         </div>
 
-        {/* Tình trạng thiết bị */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        {/* === WIDGET: Tình trạng thiết bị === */}
+        <div className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <Dumbbell className="h-5 w-5 text-green-600" />
             <h2 className="text-lg font-semibold text-gray-800">
               Tình trạng thiết bị
             </h2>
           </div>
-          <div className="space-y-4">
+          <div className="custom-scrollbar max-h-96 space-y-4 overflow-y-auto pr-2">
             {availableEquipments.map((item) => {
-              const percent = (item.equipment.quantity / item.total) * 100;
+              // SỬA: Tính phần trăm theo (Số lượng hiện có / Tổng kho)
+              const percent = (item.total / item.equipment.quantity) * 100;
               return (
                 <div key={item.equipment._id}>
                   <div className="mb-1 flex justify-between text-sm text-gray-600">
                     <span>{item.equipment.name}</span>
+                    {/* SỬA: Hiển thị đúng logic Số lượng / Tổng kho */}
                     <span>
-                      {item.equipment.quantity}/{item.total}
+                      {item.total}/{item.equipment.quantity}
                     </span>
                   </div>
                   <div className="h-2 w-full rounded-full bg-gray-100">
                     <div
                       className="h-2 rounded-full bg-green-500"
-                      style={{ width: `${percent}%` }}
+                      style={{ width: `${Math.min(percent, 100)}%` }} // Giới hạn max 100% để tránh tràn
                     ></div>
                   </div>
                 </div>
@@ -247,80 +406,13 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Danh sách đặt + Lịch khung giờ */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Đặt lịch gần đây */}
-        <div className="rounded-xl border border-gray-300 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <Clock className="h-5 w-5 text-gray-700" />
-            <h2 className="text-lg font-semibold text-gray-800">
-              Đặt lịch gần đây
-            </h2>
-          </div>
-
-          <div className="space-y-3">
-            {bookings.map((b, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between rounded-lg bg-gray-100 p-4"
-              >
-                <div>
-                  <p className="font-medium text-gray-700">{b.time}</p>
-                  <p className="text-sm text-gray-700">{b.name}</p>
-                  <p className="text-sm text-gray-500">{b.date}</p>
-                </div>
-                <div className="text-right">
-                  <span
-                    className={`rounded-full px-2 py-1 text-xs font-medium ${b.color}`}
-                  >
-                    {b.status}
-                  </span>
-                  <p className="mt-2 text-sm font-semibold text-gray-700">
-                    {b.price}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-4 cursor-pointer rounded-md border border-gray-300 py-2 text-center text-sm font-medium text-gray-800 transition hover:bg-gray-50">
-            Xem tất cả lịch đặt
-          </div>
-        </div>
-
-        {/* Lịch hôm nay */}
-        <div className="rounded-xl border border-gray-300 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <Clock className="h-5 w-5 text-gray-700" />
-            <h2 className="text-lg font-semibold text-gray-800">
-              Lịch khung giờ hôm nay
-            </h2>
-          </div>
-
-          <div className="space-y-3">
-            {schedules.map((s, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between rounded-lg bg-gray-100 p-4"
-              >
-                <div>
-                  <p className="font-medium text-gray-700">{s.time}</p>
-                  <p className="text-sm text-gray-700">{s.name}</p>
-                </div>
-                <span
-                  className={`rounded-full px-2 py-1 text-xs font-medium ${s.color}`}
-                >
-                  {s.status}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-4 cursor-pointer rounded-md border border-gray-300 py-2 text-center text-sm font-medium text-gray-800 transition hover:bg-gray-50">
-            Xem tất cả
-          </div>
-        </div>
-      </div>
+      {/* Modal */}
+      <BookingModal
+        isOpen={modalOpen}
+        onClose={closeModal}
+        title="Tất cả các lịch đặt gần đây"
+        bookings={allRecentBookings}
+      />
     </div>
   );
 };

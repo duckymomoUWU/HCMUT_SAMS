@@ -6,6 +6,7 @@ import {
   EquipmentRental,
   EquipmentRentalDocument,
 } from '../equipment-Rental/schemas/equipment-rental.schema';
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -111,6 +112,7 @@ export class UsersService {
       .populate('equipmentId', 'name type');
 
     return {
+      fullName: user.fullName, // [UPDATED] Trả về tên user
       bookingsThisMonth: rentalsThisMonth,
       activeRentals,
       spendingThisMonth,
