@@ -16,6 +16,8 @@ import { useState, useEffect } from "react";
 import equipmentService from "@/services/equipmentService";
 import type { Equipment } from "@/services/equipmentService";
 
+import { formatDate } from "@/utils/formatDate";
+
 // --- Types ---
 type DeviceStatus = "Tốt" | "Khá" | "Cần sửa";
 
@@ -80,7 +82,7 @@ const EditDeviceModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 text-black">
       <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-bold text-gray-800">
@@ -166,10 +168,14 @@ const DeviceCard = ({
   d,
   onEdit,
   onRefresh,
+  data,
+  index,
 }: {
   d: Device;
   onEdit: (d: Device) => void;
   onRefresh: () => void;
+  data: Equipment[];
+  index: number;
 }) => {
   const items = d.items || [];
   const total = items.length;
@@ -190,11 +196,11 @@ const DeviceCard = ({
   }
 
   const lastUpdated =
-    items.length > 0
-      ? new Date(
-          Math.max(...items.map((i) => new Date(i.updatedAt || 0).getTime())),
-        ).toLocaleDateString("vi-VN")
-      : "Chưa cập nhật";
+    data.length > 0
+      ? data.map((i) =>
+          i.updatedAt ? formatDate(i.updatedAt) : "Chưa cập nhật",
+        )
+      : [];
 
   return (
     <div className="flex flex-col justify-between rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md">
@@ -236,7 +242,7 @@ const DeviceCard = ({
 
       <p className="mt-3 text-xs text-gray-600">
         Cập nhật lần cuối:{" "}
-        <span className="font-medium text-gray-800">{lastUpdated}</span>
+        <span className="font-medium text-gray-800">{lastUpdated[index]}</span>
       </p>
 
       {/* Item List Preview */}
@@ -295,6 +301,12 @@ const DevicesManagement = () => {
 
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const [data, setData] = useState<Equipment[]>([]);
+
+  // NEW
+  console.log("data", data);
+
   // --- DATA FETCHING ---
   const fetchData = async () => {
     try {
@@ -306,6 +318,10 @@ const DevicesManagement = () => {
           EquipmentItemPopulated[]
         >,
       ]);
+
+      setData(equipmentData);
+
+      console.log("equipmentData", equipmentData); ///
 
       const itemsByEquipment: Record<string, EquipmentItemPopulated[]> = {};
       itemsData.forEach((item) => {
@@ -533,12 +549,14 @@ const DevicesManagement = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                  {devices.map((d) => (
+                  {devices.map((d, idx) => (
                     <DeviceCard
                       key={d._id}
                       d={d}
                       onEdit={handleEditDevice}
                       onRefresh={fetchData} // Nút Cập nhật sẽ reload data
+                      data={data}
+                      index={idx}
                     />
                   ))}
                 </div>
