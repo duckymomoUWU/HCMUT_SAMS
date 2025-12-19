@@ -256,85 +256,85 @@ const OrdersManagement = () => {
     },
   ];
   const handleExportPDF = () => {
-  const doc = new jsPDF();
+    const doc = new jsPDF();
 
-  // Hàm hỗ trợ xóa dấu tiếng Việt để tránh lỗi ký tự lạ "&T&r&§"
-  const removeVietnameseTones = (str: string) => {
-    if (!str) return "N/A";
-    return str
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/đ/g, 'd')
-      .replace(/Đ/g, 'D')
-      .replace(/\s+/g, ' ') // Xóa khoảng trắng thừa giữa các chữ
-      .trim();
+    // Hàm hỗ trợ xóa dấu tiếng Việt để tránh lỗi ký tự lạ "&T&r&§"
+    const removeVietnameseTones = (str: string) => {
+      if (!str) return "N/A";
+      return str
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .replace(/\s+/g, ' ') // Xóa khoảng trắng thừa giữa các chữ
+        .trim();
+    };
+
+    const today = new Date().toLocaleDateString('vi-VN');
+
+    // 1. Tiêu đề
+    doc.setFontSize(18);
+    doc.text("BAO CAO HE THONG QUAN LY SAMS", 105, 15, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text(`Ngay xuat: ${today}`, 105, 22, { align: 'center' });
+
+    // 2. Thống kê tổng quát
+    doc.setFontSize(14);
+    doc.text("1. Thong ke tong quan", 14, 35);
+    autoTable(doc, {
+      startY: 40,
+      head: [['Tong don dat', 'Da xac nhan', 'Cho thanh toan', 'Doanh thu']],
+      body: [[
+        finalStats.total,
+        finalStats.confirmed,
+        finalStats.pending,
+        `${finalStats.revenue.toLocaleString('vi-VN')} VND`
+      ]],
+      theme: 'grid',
+      styles: { font: "courier" }
+    });
+
+    // 3. Danh sách chi tiết
+    doc.text("2. Danh sach don hang chi tiet", 14, (doc as any).lastAutoTable.finalY + 15);
+
+    const tableData = filtered.map((o, index) => {
+      // Xử lý Khách hàng: Dùng Optional Chaining an toàn
+      const rawUserName = (o.userId as any)?.fullName || 'N/A';
+      const cleanUserName = removeVietnameseTones(rawUserName);
+
+      // Xử lý Dịch vụ
+      const rawAssetName = o.type === 'booking'
+        ? (o as Booking).facilityName
+        : (o as Rental).equipmentId?.name || 'Thiet bi';
+      const cleanAssetName = removeVietnameseTones(rawAssetName);
+
+      // Xử lý Giá tiền
+      const price = o.type === 'booking'
+        ? (o as Booking).price
+        : (o as Rental).totalPrice || 0;
+
+      return [
+        index + 1,
+        o._id.slice(-6).toUpperCase(),
+        o.type === 'booking' ? 'Dat san' : 'Thue do',
+        cleanUserName,
+        cleanAssetName,
+        o.status, // Giữ nguyên mã status tiếng Anh (confirmed, renting, locked...)
+        `${price.toLocaleString('vi-VN')} VND`
+      ];
+    });
+
+    autoTable(doc, {
+      startY: (doc as any).lastAutoTable.finalY + 20,
+      head: [['STT', 'Ma don', 'Loai', 'Khach hang', 'Dich vu', 'Trang thai', 'Gia tien']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [0, 123, 229] },
+      styles: { font: "Display Fonts", fontSize: 8 }, // Courier hiển thị bảng tốt hơn khi không có font Unicode
+    });
+
+    doc.save(`Bao_cao_SAMS_${new Date().getTime()}.pdf`);
   };
-
-  const today = new Date().toLocaleDateString('vi-VN');
-
-  // 1. Tiêu đề
-  doc.setFontSize(18);
-  doc.text("BAO CAO HE THONG QUAN LY SAMS", 105, 15, { align: 'center' });
-  doc.setFontSize(10);
-  doc.text(`Ngay xuat: ${today}`, 105, 22, { align: 'center' });
-
-  // 2. Thống kê tổng quát
-  doc.setFontSize(14);
-  doc.text("1. Thong ke tong quan", 14, 35);
-  autoTable(doc, {
-    startY: 40,
-    head: [['Tong don dat', 'Da xac nhan', 'Cho thanh toan', 'Doanh thu']],
-    body: [[
-      finalStats.total,
-      finalStats.confirmed,
-      finalStats.pending,
-      `${finalStats.revenue.toLocaleString('vi-VN')} VND`
-    ]],
-    theme: 'grid',
-    styles: { font: "courier" }
-  });
-
-  // 3. Danh sách chi tiết
-  doc.text("2. Danh sach don hang chi tiet", 14, (doc as any).lastAutoTable.finalY + 15);
-
-  const tableData = filtered.map((o, index) => {
-    // Xử lý Khách hàng: Dùng Optional Chaining an toàn
-    const rawUserName = (o.userId as any)?.fullName || 'N/A';
-    const cleanUserName = removeVietnameseTones(rawUserName);
-
-    // Xử lý Dịch vụ
-    const rawAssetName = o.type === 'booking' 
-      ? (o as Booking).facilityName 
-      : (o as Rental).equipmentId?.name || 'Thiet bi';
-    const cleanAssetName = removeVietnameseTones(rawAssetName);
-
-    // Xử lý Giá tiền
-    const price = o.type === 'booking' 
-      ? (o as Booking).price 
-      : (o as Rental).totalPrice || 0;
-
-    return [
-      index + 1,
-      o._id.slice(-6).toUpperCase(),
-      o.type === 'booking' ? 'Dat san' : 'Thue do',
-      cleanUserName,
-      cleanAssetName,
-      o.status, // Giữ nguyên mã status tiếng Anh (confirmed, renting, locked...)
-      `${price.toLocaleString('vi-VN')} VND`
-    ];
-  });
-
-  autoTable(doc, {
-    startY: (doc as any).lastAutoTable.finalY + 20,
-    head: [['STT', 'Ma don', 'Loai', 'Khach hang', 'Dich vu', 'Trang thai', 'Gia tien']],
-    body: tableData,
-    theme: 'striped',
-    headStyles: { fillColor: [0, 123, 229] },
-    styles: { font: "Display Fonts", fontSize: 8 }, // Courier hiển thị bảng tốt hơn khi không có font Unicode
-  });
-
-  doc.save(`Bao_cao_SAMS_${new Date().getTime()}.pdf`);
-};
 
   const filtered = orders.filter((o) => {
     // 1. Lọc Loại đơn
@@ -632,7 +632,7 @@ const OrdersManagement = () => {
                         {o.type === 'booking' ? 'Đặt sân' : 'Thuê thiết bị'}
                       </span>
 
-                      {/* 2. Tag Trạng thái chính (Đã gộp logic hiển thị nhãn) */}
+                      {/* 2. Tag Trạng thái chính */}
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full font-medium ${(statusColor as any)[o.status] || "bg-gray-100 text-gray-700"}`}
                       >
@@ -661,7 +661,6 @@ const OrdersManagement = () => {
                       )}
                     </div>
 
-                    {/* Details */}
                     {/* Details */}
                     <p className="text-sm text-gray-600 flex items-center gap-3 mt-1 flex-wrap">
                       <User size={14} />
@@ -697,15 +696,25 @@ const OrdersManagement = () => {
                       </p>
                     )}
                   </div>
-
+                  {/* Xem, xóa, hủy, checkin đối với client*/}
                   <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setSelectedOrder(o)}
-                      className="p-2 rounded-md bg-gray-100 hover:bg-blue-100 transition"
-                      title="Xem chi tiết"
-                    >
-                      <Eye className="w-4 h-4 text-gray-700 hover:text-blue-700" />
-                    </button>
+                    {o.userId ? (
+                      <button
+                        onClick={() => setSelectedOrder(o)}
+                        className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 active:scale-95"
+                        title="Xem chi tiết đơn hàng"
+                      >
+                        <Eye className="w-5 h-5" />
+                      </button>
+                    ) : (
+                      <div
+                        className="flex items-center justify-center w-9 h-9 rounded-lg bg-gray-50 text-gray-300 cursor-not-allowed"
+                        title="Người dùng không tồn tại"
+                      >
+                        <Eye className="w-5 h-5" />
+                      </div>
+                    )}
+
                     {o.type === 'booking' && o.status === 'pending' && (
                       <button
                         onClick={() => handleConfirmBooking(o._id)}
