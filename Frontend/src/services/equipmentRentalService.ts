@@ -56,6 +56,22 @@ class EquipmentRentalService {
     });
     return response.data;
   }
+
+  async getAdminRentals(): Promise<EquipmentRental[]> {
+    const response = await api.get("/equipment-rental/admin");
+    return response.data;
+  }
+
+  async adminUpdateRentalStatus(
+    id: string,
+    status: "renting" | "completed" | "cancelled"
+  ): Promise<EquipmentRental> {
+    const response = await api.patch(
+      `/equipment-rental/status/${id}`,
+      { status }
+    );
+    return response.data;
+  }
 }
 
 const equipmentRentalService = new EquipmentRentalService();

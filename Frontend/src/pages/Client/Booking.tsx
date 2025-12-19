@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/Admin/PageHeader";
 import StatCard from "@/components/Admin/StatCard";
 import Calendar from "react-calendar";
-import "react-calendar/dist/calendar.css";
+import 'react-calendar/dist/Calendar.css';
 import "@/pages/Client/calendar.css";
 import api from "@/lib/Axios";
 import bookingService, { type CourtBooking } from "@/services/bookingService";
