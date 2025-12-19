@@ -256,91 +256,118 @@ const OrdersManagement = () => {
     },
   ];
   const handleExportPDF = () => {
-    const doc = new jsPDF();
-    const today = new Date().toLocaleDateString('vi-VN');
+  const doc = new jsPDF();
 
-    // 1. Tiêu đề báo cáo
-    doc.setFontSize(20);
-    doc.text("BAO CAO HE THONG QUAN LY SAMS", 105, 15, { align: 'center' });
+  // Hàm hỗ trợ xóa dấu tiếng Việt để tránh lỗi ký tự lạ "&T&r&§"
+  const removeVietnameseTones = (str: string) => {
+    if (!str) return "N/A";
+    return str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .replace(/\s+/g, ' ') // Xóa khoảng trắng thừa giữa các chữ
+      .trim();
+  };
 
-    doc.setFontSize(10);
-    doc.text(`Ngay xuat: ${today}`, 105, 22, { align: 'center' });
+  const today = new Date().toLocaleDateString('vi-VN');
 
-    // 2. Phần thống kê tổng quát (Sử dụng dữ liệu finalStats của bạn)
-    doc.setFontSize(14);
-    doc.text("1. Thong ke tong quan", 14, 35);
+  // 1. Tiêu đề
+  doc.setFontSize(18);
+  doc.text("BAO CAO HE THONG QUAN LY SAMS", 105, 15, { align: 'center' });
+  doc.setFontSize(10);
+  doc.text(`Ngay xuat: ${today}`, 105, 22, { align: 'center' });
 
-    autoTable(doc, {
-      startY: 40,
-      head: [['Tong don dat', 'Da xac nhan', 'Cho thanh toan', 'Doanh thu']],
-      body: [[
-        finalStats.total,
-        finalStats.confirmed,
-        finalStats.pending,
-        `${finalStats.revenue.toLocaleString('vi-VN')} VND`
-      ]],
-      theme: 'grid',
-      styles: { fontSize: 10 }
-    });
+  // 2. Thống kê tổng quát
+  doc.setFontSize(14);
+  doc.text("1. Thong ke tong quan", 14, 35);
+  autoTable(doc, {
+    startY: 40,
+    head: [['Tong don dat', 'Da xac nhan', 'Cho thanh toan', 'Doanh thu']],
+    body: [[
+      finalStats.total,
+      finalStats.confirmed,
+      finalStats.pending,
+      `${finalStats.revenue.toLocaleString('vi-VN')} VND`
+    ]],
+    theme: 'grid',
+    styles: { font: "courier" }
+  });
 
-    // 3. Danh sách đơn hàng chi tiết
-    doc.text("2. Danh sach don hang chi tiet", 14, (doc as any).lastAutoTable.finalY + 15);
+  // 3. Danh sách chi tiết
+  doc.text("2. Danh sach don hang chi tiet", 14, (doc as any).lastAutoTable.finalY + 15);
 
-    const tableData = filtered.map((o, index) => [
+  const tableData = filtered.map((o, index) => {
+    // Xử lý Khách hàng: Dùng Optional Chaining an toàn
+    const rawUserName = (o.userId as any)?.fullName || 'N/A';
+    const cleanUserName = removeVietnameseTones(rawUserName);
+
+    // Xử lý Dịch vụ
+    const rawAssetName = o.type === 'booking' 
+      ? (o as Booking).facilityName 
+      : (o as Rental).equipmentId?.name || 'Thiet bi';
+    const cleanAssetName = removeVietnameseTones(rawAssetName);
+
+    // Xử lý Giá tiền
+    const price = o.type === 'booking' 
+      ? (o as Booking).price 
+      : (o as Rental).totalPrice || 0;
+
+    return [
       index + 1,
       o._id.slice(-6).toUpperCase(),
       o.type === 'booking' ? 'Dat san' : 'Thue do',
-      typeof o.userId === 'object' ? o.userId.fullName : 'N/A',
-      o.type === 'booking' ? (o as Booking).facilityName : (o as Rental).equipmentId.name,
-      o.status,
-      o.type === 'booking' ? `${(o as Booking).price.toLocaleString()} VND` : `${(o as Rental).totalPrice.toLocaleString()} VND`
-    ]);
+      cleanUserName,
+      cleanAssetName,
+      o.status, // Giữ nguyên mã status tiếng Anh (confirmed, renting, locked...)
+      `${price.toLocaleString('vi-VN')} VND`
+    ];
+  });
 
-    autoTable(doc, {
-      startY: (doc as any).lastAutoTable.finalY + 20,
-      head: [['STT', 'Ma don', 'Loai', 'Khach hang', 'Dich vu', 'Trang thai', 'Gia tiền']],
-      body: tableData,
-      theme: 'striped',
-      headStyles: { fillColor: [0, 123, 229] }, // Màu xanh blue-600
-      styles: { fontSize: 8 }
-    });
+  autoTable(doc, {
+    startY: (doc as any).lastAutoTable.finalY + 20,
+    head: [['STT', 'Ma don', 'Loai', 'Khach hang', 'Dich vu', 'Trang thai', 'Gia tien']],
+    body: tableData,
+    theme: 'striped',
+    headStyles: { fillColor: [0, 123, 229] },
+    styles: { font: "Display Fonts", fontSize: 8 }, // Courier hiển thị bảng tốt hơn khi không có font Unicode
+  });
 
-    // 4. Lưu file
-    doc.save(`Bao_cao_SAMS_${new Date().getTime()}.pdf`);
-  };
+  doc.save(`Bao_cao_SAMS_${new Date().getTime()}.pdf`);
+};
 
   const filtered = orders.filter((o) => {
-    // 1. Bộ lọc Loại đơn 
-    if (typeFilter !== "Tất cả") {
-      // So sánh trực tiếp typeFilter (booking/rental) với o.type
-      if (o.type !== typeFilter) {
-        return false;
-      }
-    }
-    // 1. Bộ lọc Trạng thái (Status & Payment Filter)
+    // 1. Lọc Loại đơn
+    if (typeFilter !== "Tất cả" && o.type !== typeFilter) return false;
+
+    // 2. Lọc Trạng thái & Thanh toán
     if (statusFilter !== "Tất cả") {
       const statusMap: Record<string, string[]> = {
         "Đã xác nhận": ["confirmed", "CONFIRMED"],
-        "Chưa thanh toán": ["pending", "PENDING", "unpaid", "UNPAID"],
-        // "Hoàn thành": ["completed", "COMPLETED"],
-        // "Không đến": ["no_show", "NO_SHOW"],
+        "Đang thuê": ["renting", "RENTING"],
+        "Đã thanh toán": ["paid", "PAID", "success"],
+        "Chưa thanh toán": ["unpaid", "UNPAID", "pending", "PENDING"],
         "Đã hủy": ["cancelled", "CANCELLED"],
       };
 
-      const targetStatuses = statusMap[statusFilter];
+      const targetCodes = statusMap[statusFilter];
 
-      if (targetStatuses) {
-        const currentStatus = o.status;
-        // Lấy paymentStatus nếu là đơn booking, nếu không có thì để chuỗi rỗng
-        const paymentStatus = o.type === 'booking' ? (o as Booking).paymentStatus : '';
+      if (targetCodes) {
+        const orderStatus = o.status?.toString().toLowerCase().trim();
 
-        // Kiểm tra: Trạng thái chính khớp HOẶC Trạng thái thanh toán khớp (cho trường hợp Chưa thanh toán)
-        const isStatusMatch = targetStatuses.includes(currentStatus);
-        const isPaymentMatch = targetStatuses.includes(paymentStatus);
+        // SỬA TẠI ĐÂY: Truy xuất paymentStatus từ paymentId nếu có
+        const payStatus = (
+          (o as any).paymentStatus ||             // Trường hợp đơn Booking
+          (o as any).paymentId?.status ||         // Trường hợp đơn Rental (Dựa trên JSON của bạn)
+          ((o as any).paymentId ? "unpaid" : "")  // Nếu có ID mà chưa có status thì coi như chưa trả
+        ).toString().toLowerCase().trim();
 
-        if (!isStatusMatch && !isPaymentMatch) {
-          return false;
-        }
+        const isMatch = targetCodes.some(code => {
+          const cleanCode = code.toLowerCase().trim();
+          return cleanCode === orderStatus || cleanCode === payStatus;
+        });
+
+        if (!isMatch) return false;
       }
     }
 
@@ -363,9 +390,9 @@ const OrdersManagement = () => {
     // 3. Bộ lọc Tìm kiếm (Search filter)
     const searchTerm = search.toLowerCase();
 
-    // Thông tin User
-    const userName = typeof o.userId === 'object' ? (o.userId.fullName || '').toLowerCase() : '';
-    const userEmail = typeof o.userId === 'object' ? (o.userId.email || '').toLowerCase() : '';
+    const userName = (o.userId as any)?.fullName?.toLowerCase() || '';
+    const userEmail = (o.userId as any)?.email?.toLowerCase() || '';
+    const orderId = o._id?.toLowerCase() || '';
 
     // Kiểm tra ID, Tên, Email
     const matchId = o._id.toLowerCase().includes(searchTerm);
@@ -375,9 +402,9 @@ const OrdersManagement = () => {
     // Kiểm tra Tên sân hoặc Tên thiết bị
     let matchAsset = false;
     if (o.type === 'booking') {
-      matchAsset = (o as Booking).facilityName.toLowerCase().includes(searchTerm);
+      matchAsset = (o as Booking).facilityName?.toLowerCase().includes(searchTerm) || false;
     } else {
-      matchAsset = (o as Rental).equipmentId?.name.toLowerCase().includes(searchTerm);
+      matchAsset = (o as Rental).equipmentId?.name?.toLowerCase().includes(searchTerm) || false;
     }
 
     return matchId || matchName || matchEmail || matchAsset;
@@ -461,35 +488,58 @@ const OrdersManagement = () => {
             />
           </div>
 
-          <div className="flex gap-4 items-end flex-wrap">
-            {/* Bộ lọc Loại hình (Mới) */}
-            <div className="flex flex-col">
-              <label className="text-sm text-gray-700 mb-1">Loại đơn</label>
-              <select
-                value={typeFilter} // Khai báo: const [typeFilter, setTypeFilter] = useState("Tất cả")
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-40 bg-white focus:ring-2 focus:ring-blue-500 text-gray-800"
-              >
-                <option>Tất cả</option>
-                <option value="booking">Đặt sân</option>
-                <option value="rental">Thuê thiết bị</option>
-              </select>
-            </div>
+          {/* Bộ lọc Loại đơn */}
+          <div className="flex flex-col">
+            <label className="text-sm text-gray-700 mb-1 font-medium">Loại đơn</label>
+            <select
+              value={typeFilter}
+              onChange={(e) => {
+                setTypeFilter(e.target.value);
+                setStatusFilter("Tất cả");
+              }}
+              className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-40 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="Tất cả">Tất cả</option>
+              <option value="booking">Đặt sân</option>
+              <option value="rental">Thuê thiết bị</option>
+            </select>
+          </div>
 
-            {/* Bộ lọc Trạng thái (Đã thêm Đã hủy) */}
-            <div className="flex flex-col">
-              <label className="text-sm text-gray-700 mb-1">Trạng thái</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-48 bg-white focus:ring-2 focus:ring-blue-500 text-gray-800"
-              >
-                <option>Tất cả</option>
-                <option>Đã xác nhận</option>
-                <option>Chưa thanh toán</option>
-                <option>Đã hủy</option> {/* Đã bổ sung */}
-              </select>
-            </div>
+          {/* Bộ lọc Trạng thái linh hoạt */}
+          <div className="flex flex-col">
+            <label className="text-sm text-gray-700 mb-1 font-medium">Trạng thái</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-48 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="Tất cả">Tất cả</option>
+
+              {/* Hiện options dựa trên Loại đơn đang chọn */}
+              {typeFilter === "booking" ? (
+                <>
+                  <option>Đã xác nhận</option>
+                  <option>Đã thanh toán</option>
+                  <option>Chưa thanh toán</option>
+                  <option>Đã hủy</option>
+                </>
+              ) : typeFilter === "rental" ? (
+                <>
+                  <option>Đang thuê</option>
+                  <option>Đã thanh toán</option>
+                  <option>Chưa thanh toán</option>
+                  <option>Đã hủy</option>
+                </>
+              ) : (
+                <>
+                  <option>Đã xác nhận</option>
+                  <option>Đang thuê</option>
+                  <option>Đã thanh toán</option>
+                  <option>Chưa thanh toán</option>
+                  <option>Đã hủy</option>
+                </>
+              )}
+            </select>
           </div>
 
           <div className="flex flex-col">
@@ -574,7 +624,6 @@ const OrdersManagement = () => {
                   className="flex items-center justify-between border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition"
                 >
                   <div>
-                    {/* Header ID + Tags */}
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium text-gray-800">{o._id.slice(-8).toUpperCase()}</p>
 
@@ -583,44 +632,57 @@ const OrdersManagement = () => {
                         {o.type === 'booking' ? 'Đặt sân' : 'Thuê thiết bị'}
                       </span>
 
-                      {/* 2. Tag Trạng thái chính (DUY NHẤT) */}
+                      {/* 2. Tag Trạng thái chính (Đã gộp logic hiển thị nhãn) */}
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full font-medium ${(statusColor as any)[o.status] || "bg-gray-100 text-gray-700"}`}
                       >
-                        {/* Ưu tiên hiển thị nhãn "Chưa thanh toán" cho đơn booking pending/unpaid, còn lại lấy từ statusMap */}
-                        {o.type === 'booking' && (o.status === 'pending' || (o.status as string) === 'unpaid')
-                          ? "Chưa thanh toán"
-                          : (statusMap as any)[o.status]
-                        }
+                        {o.type === 'booking' ? (
+                          ['pending', 'unpaid'].includes(o.status.toLowerCase()) ? "Chờ thanh toán" : (statusMap as any)[o.status]
+                        ) : (
+                          // Trạng thái riêng cho Thiết bị
+                          o.status.toLowerCase() === 'renting' ? "Đang thuê" : (statusMap as any)[o.status]
+                        )}
                       </span>
 
-                      {/* 3. Tag Thanh toán chi tiết (Chỉ hiện khi đã thanh toán hoặc hoàn tiền để tránh lặp với tag Chưa thanh toán ở trên) */}
-                      {o.type === 'booking' && (o as Booking).paymentStatus !== 'unpaid' && (
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${(o as Booking).paymentStatus === 'paid'
-                            ? 'bg-green-50 text-green-600 border border-green-200'
-                            : 'bg-blue-50 text-blue-600 border border-blue-200'
-                            }`}
-                        >
-                          {paymentStatusMap[(o as Booking).paymentStatus]}
-                        </span>
-                      )}
+                      {/* 3. Tag Thanh toán (Hiển thị cho cả Sân và Thiết bị) */}
+                      {/* Kiểm tra logic paymentStatus: nếu là 'unpaid' thì hiện xám, 'paid' hiện xanh */}
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full font-medium ${(o as any).paymentStatus === 'paid'
+                          ? 'bg-green-50 text-green-600 border border-green-200'
+                          : 'bg-gray-50 text-gray-600 border border-gray-200'
+                          }`}
+                      >
+                        {(o as any).paymentStatus === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                      </span>
 
-                      {/* 4. Icon cảnh báo vắng mặt */}
+                      {/* 4. Icon cảnh báo vắng mặt (Chỉ dành cho sân) */}
                       {o.type === 'booking' && o.status === "no_show" && (
                         <Ban className="w-4 h-4 text-red-500 ml-1" />
                       )}
                     </div>
 
                     {/* Details */}
+                    {/* Details */}
                     <p className="text-sm text-gray-600 flex items-center gap-3 mt-1 flex-wrap">
-                      <User size={14} /> {typeof o.userId === 'object' ? o.userId.fullName : 'N/A'}
+                      <User size={14} />
+                      {/* Sửa lỗi fullName tại đây bằng cách dùng ?. và gán giá trị mặc định */}
+                      {(o.userId as any)?.fullName || 'Người dùng không tồn tại'}
+
                       <Package size={14} />{' '}
                       {o.type === 'booking'
                         ? (o as Booking).facilityName
-                        : (o as Rental).equipmentId.name}
-                      <Calendar size={14} /> {o.type === 'booking' ? new Date((o as Booking).date).toLocaleDateString('vi-VN') : new Date((o as Rental).rentalDate).toLocaleDateString('vi-VN')}
-                      <Clock size={14} /> {o.type === 'booking' ? (o as Booking).timeSlot : `${(o as Rental).duration}h`}
+                        // Sửa lỗi equipmentId có thể bị null
+                        : (o as Rental).equipmentId?.name || 'Thiết bị đã bị xóa'}
+
+                      <Calendar size={14} />
+                      {o.type === 'booking'
+                        ? new Date((o as Booking).date).toLocaleDateString('vi-VN')
+                        : new Date((o as Rental).rentalDate).toLocaleDateString('vi-VN')}
+
+                      <Clock size={14} />
+                      {o.type === 'booking'
+                        ? (o as Booking).timeSlot
+                        : `${(o as Rental).duration}h`}
                     </p>
 
                     <p className="text-sm text-gray-700 mt-1 font-medium flex items-center gap-2">
