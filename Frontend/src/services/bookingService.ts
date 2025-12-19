@@ -11,7 +11,7 @@ export interface CourtBooking {
   startTime: string;
   endTime: string;
   price: number;
-  status: "pending" | "confirmed" | "completed" | "cancelled" | "no_show";
+  status: "pending" | "confirmed" | "completed" | "cancelled" | "no_show" | "locked";
   paymentStatus: "unpaid" | "paid" | "refunded";
   paymentId?: string;
   checkinTime?: string;
@@ -21,6 +21,39 @@ export interface CourtBooking {
   cancelReason?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+// Time Slot Management Types
+export interface TimeSlot {
+  timeSlot: string;
+  startTime: string;
+  endTime: string;
+  status: 'available' | 'booked' | 'locked';
+  booking?: CourtBooking;
+}
+
+export interface TimeSlotStats {
+  total: number;
+  booked: number;
+  available: number;
+  locked: number;
+}
+
+export interface WeekSlotStats extends TimeSlotStats {
+  date: string;
+  dayOfWeek: string;
+}
+
+export interface MonthSlotStats extends TimeSlotStats {
+  date: string;
+  day: number;
+}
+
+export interface LockMultipleResult {
+  timeSlot: string;
+  success: boolean;
+  booking?: CourtBooking;
+  error?: string;
 }
 
 export interface CreateBookingDTO {
@@ -52,12 +85,13 @@ class BookingService {
     return response.data.booking;
   }
 
-  // Lấy các slot đã đặt
-  async getBookedSlots(facilityId: string, date: string): Promise<string[]> {
+  // Lấy các slot đã đặt hoặc bị khóa
+  async getBookedSlots(facilityId: string, date: string): Promise<{ time: string; status: 'booked' | 'locked' }[]> {
     const response = await api.get("/booking/booked-slots", {
       params: { facilityId, date },
     });
-    return response.data.bookedSlots;
+    // Trả về array of { time, status }
+    return response.data.bookedSlots || [];
   }
 
   // Hủy booking
@@ -95,6 +129,86 @@ class BookingService {
   async checkout(id: string): Promise<CourtBooking> {
     const response = await api.patch(`/booking/${id}/checkout`);
     return response.data.booking;
+  }
+
+  // ==================== ADMIN TIME SLOT MANAGEMENT ====================
+
+  // Lấy danh sách sân từ bookings
+  async getUniqueFacilities(): Promise<{ id: string; name: string; location: string }[]> {
+    const response = await api.get("/booking/admin/facilities");
+    return response.data.facilities;
+  }
+
+  // Lấy danh sách khung giờ theo ngày
+  async getTimeSlotsForDay(facilityId: string, date: string): Promise<TimeSlot[]> {
+    const response = await api.get("/booking/admin/time-slots", {
+      params: { facilityId, date },
+    });
+    return response.data.slots;
+  }
+
+  // Lấy thống kê khung giờ
+  async getTimeSlotStats(facilityId: string, date: string): Promise<TimeSlotStats> {
+    const response = await api.get("/booking/admin/time-slots/stats", {
+      params: { facilityId, date },
+    });
+    return response.data.stats;
+  }
+
+  // Khóa khung giờ
+  async lockTimeSlot(facilityId: string, date: string, timeSlot: string, reason?: string): Promise<{ booking: CourtBooking }> {
+    const response = await api.post("/booking/admin/time-slots/lock", {
+      facilityId,
+      date,
+      timeSlot,
+      reason,
+    });
+    return response.data;
+  }
+
+  // Mở khóa khung giờ
+  async unlockTimeSlot(facilityId: string, date: string, timeSlot: string): Promise<{ message: string }> {
+    const response = await api.post("/booking/admin/time-slots/unlock", {
+      facilityId,
+      date,
+      timeSlot,
+    });
+    return response.data;
+  }
+
+  // Cập nhật giá khung giờ
+  async updateSlotPrice(bookingId: string, newPrice: number): Promise<CourtBooking> {
+    const response = await api.patch(`/booking/admin/time-slots/${bookingId}/price`, {
+      newPrice,
+    });
+    return response.data;
+  }
+
+  // Khóa nhiều khung giờ cùng lúc
+  async lockMultipleSlots(facilityId: string, date: string, timeSlots: string[], reason?: string): Promise<LockMultipleResult[]> {
+    const response = await api.post("/booking/admin/time-slots/lock-multiple", {
+      facilityId,
+      date,
+      timeSlots,
+      reason,
+    });
+    return response.data.results;
+  }
+
+  // Lấy khung giờ theo tuần
+  async getTimeSlotsForWeek(facilityId: string, startDate: string): Promise<WeekSlotStats[]> {
+    const response = await api.get("/booking/admin/time-slots/week", {
+      params: { facilityId, startDate },
+    });
+    return response.data.slots || [];
+  }
+
+  // Lấy khung giờ theo tháng
+  async getTimeSlotsForMonth(facilityId: string, year: number, month: number): Promise<MonthSlotStats[]> {
+    const response = await api.get("/booking/admin/time-slots/month", {
+      params: { facilityId, year, month },
+    });
+    return response.data.slots || [];
   }
 }
 

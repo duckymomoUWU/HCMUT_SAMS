@@ -9,6 +9,7 @@ export enum BookingStatus {
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
   NO_SHOW = 'no_show',
+  LOCKED = 'locked', // Admin khóa khung giờ
 }
 
 export enum PaymentStatus {

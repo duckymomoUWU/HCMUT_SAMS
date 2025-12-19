@@ -15,7 +15,7 @@ const Booking = () => {
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [bookedSlots, setBookedSlots] = useState<{ time: string; status: 'booked' | 'locked' }[]>([]);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
@@ -63,10 +63,14 @@ const Booking = () => {
       // Nếu ngày tương lai → không past
 
       let status = "available";
-      if (bookedSlots.includes(timeStr)) {
-        status = "booked";
-      } else if (isPast) {
+      if (isPast) {
         status = "past";
+      } else {
+        // Kiểm tra xem slot có trong danh sách booked/locked không
+        const slotInfo = bookedSlots.find(s => s.time === timeStr);
+        if (slotInfo) {
+          status = slotInfo.status; // 'booked' hoặc 'locked'
+        }
       }
 
       baseSlots.push({
@@ -242,8 +246,9 @@ const Booking = () => {
               slots.map((slot, index) => {
                 const isSelected = selectedSlot === index;
                 const isBooked = slot.status === "booked";
+                const isLocked = slot.status === "locked";
                 const isPast = slot.status === "past";
-                const isDisabled = isBooked || isPast;
+                const isDisabled = isBooked || isLocked || isPast;
 
                 return (
                   <button
@@ -251,16 +256,21 @@ const Booking = () => {
                     onClick={() => !isDisabled && setSelectedSlot(index)}
                     disabled={isDisabled}
                     className={`rounded-md border py-2 text-sm font-medium transition ${
-                      isBooked
-                        ? "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400"
-                        : isPast
-                          ? "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-300 line-through"
-                          : isSelected
-                            ? "border-blue-600 bg-blue-600 text-white"
-                            : "bg-gray-50 text-gray-700 hover:border-blue-400 hover:bg-blue-50"
+                      isLocked
+                        ? "cursor-not-allowed border-red-200 bg-red-50 text-red-400"
+                        : isBooked
+                          ? "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400"
+                          : isPast
+                            ? "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-300 line-through"
+                            : isSelected
+                              ? "border-blue-600 bg-blue-600 text-white"
+                              : "bg-gray-50 text-gray-700 hover:border-blue-400 hover:bg-blue-50"
                     } `}
                   >
                     {slot.time}
+                    {isLocked && (
+                      <span className="block text-xs text-red-400">Bị khóa</span>
+                    )}
                     {isBooked && (
                       <span className="block text-xs text-gray-400">Đã đặt</span>
                     )}
