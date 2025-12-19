@@ -50,31 +50,41 @@ export class EquipmentRentalService {
       throw new NotFoundException('Equipment not found');
     }
 
-    // LẤY ITEM AVAILABLE
-    const items = await this.itemModel
-      .find({
-        equipment: equipmentId,
-        status: EquipmentItemStatus.AVAILABLE,
-      })
-      .limit(dto.quantity);
+    // Xác định quantity từ items hoặc quantity field
+    let quantity = dto.quantity || (dto.items?.length || 1);
+    let itemIds: Types.ObjectId[] = [];
 
-    if (items.length < dto.quantity) {
-      throw new BadRequestException('Not enough equipment items available');
+    // Nếu frontend gửi items array, dùng items đó
+    if (dto.items && dto.items.length > 0) {
+      itemIds = dto.items.map(item => new Types.ObjectId(item));
+      quantity = dto.items.length;
+    } else {
+      // Nếu không, tìm available items
+      const foundItems = await this.itemModel
+        .find({
+          equipment: equipmentId,
+          status: EquipmentItemStatus.AVAILABLE,
+        })
+        .limit(quantity);
+
+      if (foundItems.length < quantity) {
+        throw new BadRequestException('Not enough equipment items available');
+      }
+
+      itemIds = (foundItems as any[]).map((i: any) => i._id as Types.ObjectId);
     }
 
     // LOCK ITEM
-    const itemIds = items.map((i) => i._id);
     await this.itemModel.updateMany(
       { _id: { $in: itemIds } },
       { status: EquipmentItemStatus.RENTED },
     );
 
     const rentalDate = dto.rentalDate ? new Date(dto.rentalDate) : new Date();
-
     const totalPrice = equipment.pricePerHour * dto.duration * itemIds.length;
 
     const rental = await this.rentalModel.create({
-      userId: new Types.ObjectId(dto.userId),
+      userId: dto.userId ? new Types.ObjectId(dto.userId) : new Types.ObjectId('000000000000000000000000'),
       equipmentId: equipmentId,
       items: itemIds,
       rentalDate,

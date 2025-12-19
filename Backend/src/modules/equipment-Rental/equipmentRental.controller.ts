@@ -24,8 +24,13 @@ export class EquipmentRentalController {
 
   // equipment-rental
   @Post()
-  create(@Body() dto: CreateEquipmentRentalDto) {
-    return this.service.create(dto);
+  async create(@Body() dto: CreateEquipmentRentalDto, @Req() req) {
+    // Nếu frontend không gửi userId, lấy từ request
+    if (!dto.userId) {
+      dto.userId = req.user?.id || req.user?.userId;
+    }
+    const rental = await this.service.create(dto);
+    return { rental };
   }
 
   // equipment-rental

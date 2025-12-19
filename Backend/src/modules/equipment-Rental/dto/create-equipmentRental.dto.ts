@@ -4,19 +4,27 @@ import {
   Min,
   IsOptional,
   IsDateString,
+  IsArray,
 } from 'class-validator';
 
 export class CreateEquipmentRentalDto {
+  @IsOptional()
   @IsMongoId()
-  userId: string;
+  userId?: string;
 
   @IsMongoId()
   equipmentId: string;
 
-  // số lượng item cần thuê
+  // Frontend gửi items array (optional, nếu không có thì tính từ quantity)
+  @IsOptional()
+  @IsArray()
+  items?: string[];
+
+  // số lượng item cần thuê (dùng nếu không có items)
+  @IsOptional()
   @IsNumber()
   @Min(1)
-  quantity: number;
+  quantity?: number;
 
   @IsOptional()
   @IsDateString()
@@ -25,6 +33,10 @@ export class CreateEquipmentRentalDto {
   @IsNumber()
   @Min(1)
   duration: number;
+
+  @IsOptional()
+  @IsNumber()
+  totalPrice?: number;
 
   @IsOptional()
   @IsMongoId()
