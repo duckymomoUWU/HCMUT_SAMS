@@ -14,6 +14,13 @@ const PaymentResultPage = () => {
   const [loading, setLoading] = useState(true);
   const [paymentInfo, setPaymentInfo] = useState<any>(null);
 
+  const type = paymentInfo?.type || searchParams.get('type');
+  const getHistoryRoute = () => {
+    if (type === 'booking') return '/client/court-booking-history';
+    if (type === 'equipment-rental') return '/client/booking-history';
+    return '/client/booking-history';
+  };
+
   useEffect(() => {
     if (paymentId) {
       fetchPaymentInfo();
@@ -76,10 +83,10 @@ const PaymentResultPage = () => {
             )}
 
             <button
-              onClick={() => navigate('/client/booking-history')}
+              onClick={() => navigate(getHistoryRoute())}
               className="w-full px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
             >
-              Xem lịch sử đặt sân
+              Xem lịch sử 
             </button>
           </>
         ) : (
