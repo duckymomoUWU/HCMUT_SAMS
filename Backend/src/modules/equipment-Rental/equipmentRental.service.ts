@@ -147,6 +147,24 @@ export class EquipmentRentalService {
       .populate('items', 'serialNumber status')
       .exec();
   }
+  // ===============================
+  // GET ADMIN RENTALS - LẤY ĐƠN THUÊ THIẾT BỊ
+  // ===============================
+  async getAdminRentals(status?: EquipmentRentalStatus) {
+
+    const filter: any = {};
+    if (status) filter.status = status;
+
+    const rentals = await this.rentalModel
+      .find(filter)
+      .populate('userId', 'fullName email')
+      .populate('equipmentId', 'name type pricePerHour')
+      .sort({ createdAt: -1 })
+      .exec();
+
+    return rentals;
+  }
+
 
   async findByUser(userId: string) {
     console.log('🔵 Finding rentals for user:', userId);

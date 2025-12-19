@@ -13,7 +13,7 @@ import api from "@/lib/Axios";
 import { type Equipment } from "@/services/equipmentService";
 import equipmentService from "@/services/equipmentService";
 import equipmentRentalService, {
-  type CreateRentalData,
+  type CreateRentalDTO,
 } from "@/services/equipmentRentalService";
 import { useNavigate } from "react-router-dom";
 import { decodeJWT } from "@/utils/jwt";
@@ -209,23 +209,23 @@ const EquipmentRental = () => {
     // 2. Create rental for first item (or merge multiple items)
     // Assuming single rental per transaction for simplicity
     const firstItem = cart[0];
-    const rentalData: CreateRentalData = {
-      userId: userId,
+    const rentalData: CreateRentalDTO = {
       equipmentId: firstItem.id,
-      quantity: firstItem.quantity,
-      rentalDate: firstItem.rentalDate,
+      items: [], // hoặc list itemIds nếu có
+      rentalDate: new Date(firstItem.rentalDate),
       duration: firstItem.hours,
+      totalPrice: total,
     };
 
     console.log("📦 Creating rental:", rentalData);
     const rentalResponse = await equipmentRentalService.createRental(rentalData);
     console.log("✅ Rental created:", rentalResponse);
 
-    if (!rentalResponse?._id) {
+    if (!rentalResponse?.rental?._id) {
       throw new Error("Failed to get rental ID from backend");
     }
 
-    const rentalId = rentalResponse._id;
+    const rentalId = rentalResponse.rental._id;
 
     // 3. Create payment via API
     console.log("💳 Creating payment for rental:", rentalId);

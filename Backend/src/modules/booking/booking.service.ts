@@ -132,7 +132,11 @@ export class BookingService {
       filter.facilityId = query.facilityId;
     }
 
-    return this.bookingModel.find(filter).sort({ createdAt: -1 }).exec();
+    return this.bookingModel
+      .find(filter)
+      .populate('userId', 'fullName email')
+      .sort({ createdAt: -1 })
+      .exec();
   }
 
   // ===============================
@@ -223,15 +227,15 @@ export class BookingService {
       throw new BadRequestException('Không thể hủy booking đã hoàn thành');
     }
 
-    // Optional: Check if can cancel (ít nhất 2 tiếng trước giờ đặt)
-    // const bookingDateTime = new Date(booking.date);
-    // const [hours] = booking.startTime.split(':');
-    // bookingDateTime.setHours(parseInt(hours), 0, 0, 0);
-    // const now = new Date();
-    // const hoursUntilBooking = (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-    // if (hoursUntilBooking < 2) {
-    //   throw new BadRequestException('Không thể hủy booking trong vòng 2 tiếng trước giờ đặt');
-    // }
+    // Check if can cancel (ít nhất 2 tiếng trước giờ đặt)
+    const bookingDateTime = new Date(booking.date);
+    const [hours, minutes] = booking.startTime.split(':').map(Number);
+    bookingDateTime.setHours(hours, minutes, 0, 0);
+    const now = new Date();
+    const hoursUntilBooking = (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+    if (hoursUntilBooking < 2) {
+      throw new BadRequestException('Không thể hủy booking trong vòng 2 tiếng trước giờ đặt');
+    }
 
     booking.status = BookingStatus.CANCELLED;
     booking.cancelledAt = new Date();
@@ -275,5 +279,40 @@ export class BookingService {
     booking.checkoutTime = new Date();
     booking.status = BookingStatus.COMPLETED;
     return booking.save();
+  }
+  // ===============================
+  // GET STATS - THỐNG KÊ TỔNG HỢP (Aggregated Data)
+  // ===============================
+  async getBookingStats() {
+    console.log('📊 Calculating integrated stats...');
+
+    // 1. Thống kê từ Booking (Sân)
+    const bookingStats = await this.bookingModel.aggregate([
+      {
+        $facet: {
+          total: [{ $count: 'count' }],
+          confirmed: [
+            { $match: { status: BookingStatus.CONFIRMED } },
+            { $count: 'count' }
+          ],
+          pending: [
+            { $match: { paymentStatus: PaymentStatus.UNPAID } },
+            { $count: 'count' }
+          ],
+          revenue: [
+            { $match: { paymentStatus: PaymentStatus.PAID } },
+            { $group: { _id: null, total: { $sum: '$price' } } }
+          ]
+        }
+      }
+    ]);
+    const bResult = bookingStats[0];
+
+    return {
+      totalBookings: bResult.total[0]?.count || 0,
+      confirmedBookings: bResult.confirmed[0]?.count || 0,
+      pendingBookings: bResult.pending[0]?.count || 0,
+      totalRevenue: bResult.revenue[0]?.total || 0,
+    };
   }
 }

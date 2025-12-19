@@ -52,7 +52,7 @@
     "@types/bcrypt": "^6.0.0",
     "@types/crypto-js": "^4.2.2",
     "@types/express": "^5.0.0",
-    "@types/jest": "^30.0.0",
+    "@types/jest": "30.0.0",
     "@types/node": "^22.10.7",
     "@types/nodemailer": "^7.0.3",
     "@types/passport-google-oauth20": "^2.0.17",

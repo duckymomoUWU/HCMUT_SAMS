@@ -2,7 +2,11 @@ import api from "@/lib/Axios";
 
 export interface CourtBooking {
   _id: string;
-  userId: string;
+  userId: {
+    _id: string;
+    fullName: string;
+    email: string;
+  } | string; // Populated object or just ID
   facilityId: string;
   facilityName: string;
   facilityLocation: string;
@@ -11,7 +15,7 @@ export interface CourtBooking {
   startTime: string;
   endTime: string;
   price: number;
-  status: "pending" | "confirmed" | "completed" | "cancelled" | "no_show";
+  status: "pending" | "confirmed" | "completed" | "cancelled" | "no_show" | "unpaid";
   paymentStatus: "unpaid" | "paid" | "refunded";
   paymentId?: string;
   checkinTime?: string;
@@ -73,7 +77,7 @@ class BookingService {
     facilityId?: string;
   }): Promise<CourtBooking[]> {
     const response = await api.get("/booking", { params });
-    return response.data.bookings;
+    return response.data.booking;
   }
 
   // Admin: Cập nhật booking
@@ -94,6 +98,49 @@ class BookingService {
   // Staff: Check-out
   async checkout(id: string): Promise<CourtBooking> {
     const response = await api.patch(`/booking/${id}/checkout`);
+    return response.data.booking;
+  }
+
+  // Admin: Get booking stats
+  async getBookingStats(): Promise<{
+    totalBookings: number;
+    confirmedBookings: number;
+    pendingBookings: number;
+    totalRevenue: number;
+  }> {
+    const response = await api.get('/admin/booking-stats');
+    return response.data.stats;
+  }
+
+  // Admin: Get all bookings with filters
+  async getAdminBookings(params?: {
+    status?: string;
+    date?: string;
+    facilityId?: string;
+  }): Promise<CourtBooking[]> {
+    const response = await api.get('/booking', { params });
+    console.log("📡 Dữ liệu Booking từ Backend:", response.data);
+    return response.data.bookings || [];
+  }
+
+  // Admin: Update booking
+  async adminUpdateBooking(
+    id: string,
+    data: Partial<CourtBooking>
+  ): Promise<CourtBooking> {
+    const response = await api.patch(`/admin/bookings/${id}`, data);
+    return response.data.booking;
+  }
+
+  // Admin: Cancel booking
+  async adminCancelBooking(id: string, reason?: string): Promise<CourtBooking> {
+    const response = await api.patch(`/admin/bookings/${id}/cancel`, { reason });
+    return response.data.booking;
+  }
+
+  // Admin: Check-in booking
+  async adminCheckinBooking(id: string): Promise<CourtBooking> {
+    const response = await api.patch(`/admin/bookings/${id}/checkin`);
     return response.data.booking;
   }
 }

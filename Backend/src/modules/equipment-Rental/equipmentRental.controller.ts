@@ -14,6 +14,8 @@ import { EquipmentRentalService } from './equipmentRental.service';
 import { CreateEquipmentRentalDto } from './dto/create-equipmentRental.dto';
 import { UpdateEquipmentRentalDto } from './dto/update-equipmentRental.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { RolesGuard } from 'src/common/guards/roles.guard';
 
 @Controller('equipment-rental')
 @UseGuards(JwtAuthGuard)
@@ -35,7 +37,13 @@ export class EquipmentRentalController {
   @Get('my-rentals')
   getMyRentals(@Req() req) {
     console.log('🔵 GET /equipment-rental/my-rentals - userId:', req.user?.id);
-    return this.service.findByUser(req.user.userId);
+    return this.service.findByUser(req.user.userId || req.user.id);
+  }
+  @Get('admin')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  getAllRentals() {
+    return this.service.findAll();
   }
   // equipment-rental/:id
   @Get(':id')

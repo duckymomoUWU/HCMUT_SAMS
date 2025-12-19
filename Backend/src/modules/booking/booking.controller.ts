@@ -13,9 +13,11 @@ import { BookingService } from './booking.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
 
 @Controller('booking')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class BookingController {
   constructor(private readonly bookingService: BookingService) {}
 
@@ -60,6 +62,7 @@ export class BookingController {
 
   // GET /booking - Lấy tất cả booking (Admin)
   @Get()
+  @Roles('admin')
   async findAll(
     @Query('status') status?: string,
     @Query('date') date?: string,
@@ -88,6 +91,7 @@ export class BookingController {
 
   // PATCH /booking/:id - Cập nhật booking
   @Patch(':id')
+  @Roles('admin')
   async update(
     @Param('id') id: string,
     @Body() updateBookingDto: UpdateBookingDto,
@@ -121,6 +125,7 @@ export class BookingController {
 
   // PATCH /booking/:id/checkin - Check-in (Staff/Admin)
   @Patch(':id/checkin')
+  @Roles('admin')
   async checkin(@Param('id') id: string) {
     const booking = await this.bookingService.checkin(id);
     return {
@@ -132,6 +137,7 @@ export class BookingController {
 
   // PATCH /booking/:id/checkout - Check-out (Staff/Admin)
   @Patch(':id/checkout')
+  @Roles('admin')
   async checkout(@Param('id') id: string) {
     const booking = await this.bookingService.checkout(id);
     return {
