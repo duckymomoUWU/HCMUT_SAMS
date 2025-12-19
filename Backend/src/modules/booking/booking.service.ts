@@ -48,8 +48,15 @@ export class BookingService {
   async create(userId: string, createBookingDto: CreateBookingDto) {
     console.log('🔵 Creating booking:', { userId, ...createBookingDto });
 
-    const { facilityId, facilityName, facilityLocation, date, timeSlot, price, notes } =
-      createBookingDto;
+    const {
+      facilityId,
+      facilityName,
+      facilityLocation,
+      date,
+      timeSlot,
+      price,
+      notes,
+    } = createBookingDto;
 
     // Parse time slot: "07:00 - 08:00" -> startTime, endTime
     const [startTime, endTime] = timeSlot.split(' - ').map((t) => t.trim());
@@ -58,7 +65,11 @@ export class BookingService {
     const bookingDate = new Date(date);
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const bookingDay = new Date(bookingDate.getFullYear(), bookingDate.getMonth(), bookingDate.getDate());
+    const bookingDay = new Date(
+      bookingDate.getFullYear(),
+      bookingDate.getMonth(),
+      bookingDate.getDate(),
+    );
 
     // Nếu ngày đặt < hôm nay → reject
     if (bookingDay < today) {
@@ -68,8 +79,14 @@ export class BookingService {
     // Nếu ngày đặt = hôm nay → check giờ
     if (bookingDay.getTime() === today.getTime()) {
       const [startHour, startMinute] = startTime.split(':').map(Number);
-      const slotStartTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startHour, startMinute);
-      
+      const slotStartTime = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        startHour,
+        startMinute,
+      );
+
       if (slotStartTime <= now) {
         throw new BadRequestException('Không thể đặt sân vào khung giờ đã qua');
       }
@@ -128,7 +145,10 @@ export class BookingService {
   // GET BY ID
   // ===============================
   async findOne(id: string) {
-    const booking = await this.bookingModel.findById(id).exec();
+    const booking = await this.bookingModel
+      .findById(id)
+      .populate('userId', 'fullName email phone')
+      .exec();
 
     if (!booking) {
       throw new NotFoundException('Không tìm thấy booking');
@@ -165,7 +185,11 @@ export class BookingService {
   // ===============================
   // GET ALL (ADMIN)
   // ===============================
-  async findAll(query?: { status?: string; date?: string; facilityId?: string }) {
+  async findAll(query?: {
+    status?: string;
+    date?: string;
+    facilityId?: string;
+  }) {
     const filter: any = {};
 
     if (query?.status) {
@@ -178,7 +202,11 @@ export class BookingService {
       filter.facilityId = query.facilityId;
     }
 
-    return this.bookingModel.find(filter).sort({ createdAt: -1 }).exec();
+    return this.bookingModel
+      .find(filter)
+      .populate('userId', 'fullName email phone')
+      .sort({ createdAt: -1 })
+      .exec();
   }
 
   // ===============================
@@ -224,7 +252,11 @@ export class BookingService {
     paymentStatus: PaymentStatus,
     paymentId?: string,
   ) {
-    console.log('🔵 Updating booking payment status:', { id, paymentStatus, paymentId });
+    console.log('🔵 Updating booking payment status:', {
+      id,
+      paymentStatus,
+      paymentId,
+    });
 
     const booking = await this.bookingModel.findById(id);
 
@@ -244,7 +276,11 @@ export class BookingService {
     }
 
     const updated = await booking.save();
-    console.log('✅ Booking updated:', { id, status: updated.status, paymentStatus: updated.paymentStatus });
+    console.log('✅ Booking updated:', {
+      id,
+      status: updated.status,
+      paymentStatus: updated.paymentStatus,
+    });
 
     return updated;
   }
