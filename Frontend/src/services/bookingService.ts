@@ -112,7 +112,7 @@ class BookingService {
     facilityId?: string;
   }): Promise<CourtBooking[]> {
     const response = await api.get("/booking", { params });
-    return response.data.booking;
+    return response.data.bookings || [];
   }
 
   async updateBooking(
