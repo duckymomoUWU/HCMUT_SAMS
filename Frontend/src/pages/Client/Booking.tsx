@@ -1,16 +1,14 @@
 import { useState, useEffect } from "react";
 import { CalendarDays, Clock, CheckCircle2, Loader2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/Admin/PageHeader";
 import StatCard from "@/components/Admin/StatCard";
 import Calendar from "react-calendar";
 import 'react-calendar/dist/Calendar.css';
 import "@/pages/Client/calendar.css";
 import api from "@/lib/Axios";
-import bookingService, { type CourtBooking } from "@/services/bookingService";
+import bookingService from "@/services/bookingService";
 
 const Booking = () => {
-  const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);

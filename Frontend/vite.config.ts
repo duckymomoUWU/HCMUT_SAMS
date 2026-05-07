@@ -21,4 +21,5 @@ export default defineConfig({
       '.ngrok-free.dev', // Allow all ngrok domains
     ],
   },
+  base: '/HCMUT_SAMS/',
 })

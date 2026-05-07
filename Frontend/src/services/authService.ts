@@ -82,6 +82,54 @@ class AuthService {
     localStorage.removeItem("user");
   }
 
+  // ========== SIGN UP (new method for authSlice compatibility) ==========
+  async signUp(_username: string, password: string, email: string, firstName: string, lastName: string): Promise<RegisterResponse> {
+    return this.register({
+      fullName: firstName + ' ' + lastName,
+      password,
+      email,
+    });
+  }
+
+  // ========== SIGN IN (new method for authSlice compatibility) ==========
+  async signIn(username: string, password: string): Promise<AuthResponse> {
+    return this.login({
+      email: username,
+      password,
+    });
+  }
+
+  // ========== FETCH ME (new method for authSlice compatibility) ==========
+  async fetchMe(): Promise<any> {
+    try {
+      const response = await api.get("/auth/me");
+      return response.data;
+    } catch (error) {
+      console.error("Fetch me failed:", error);
+      throw error;
+    }
+  }
+
+  // ========== REFRESH (new method for authSlice compatibility) ==========
+  async refresh(): Promise<string> {
+    const token = await this.refreshAccessToken();
+    if (!token) {
+      throw new Error("Failed to refresh token");
+    }
+    return token;
+  }
+
+  // ========== SIGN OUT (new method for authSlice compatibility) ==========
+  async signOut(): Promise<void> {
+    try {
+      await api.post("/auth/logout");
+    } catch (error) {
+      console.error("Sign out failed:", error);
+    } finally {
+      this.logout();
+    }
+  }
+
   // ========== GET CURRENT USER ==========
   getCurrentUser() {
     const userStr = localStorage.getItem("user");

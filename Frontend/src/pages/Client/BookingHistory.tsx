@@ -17,16 +17,16 @@ import equipmentRentalService, {
   type EquipmentRental,
 } from "@/services/equipmentRentalService";
 import equipmentService, { type Equipment } from "@/services/equipmentService";
-import { decodeJWT } from "@/utils/jwt";
 
 interface PopulatedEquipmentRental
-  extends Omit<EquipmentRental, "equipmentId"> {
+  extends Omit<EquipmentRental, "equipmentId" | "items"> {
   equipmentId: string | Equipment;
   items?: Array<{
     _id: string;
     status: string;
     serialNumber?: string;
   }>;
+  quantity?: number;
   createdAt?: string;
 }
 

@@ -15,7 +15,6 @@ import equipmentService from "@/services/equipmentService";
 import equipmentRentalService, {
   type CreateRentalDTO,
 } from "@/services/equipmentRentalService";
-import { useNavigate } from "react-router-dom";
 import { decodeJWT } from "@/utils/jwt";
 
 // Time slots available for rental
@@ -42,7 +41,6 @@ interface EquipmentWithStock extends Equipment {
 }
 
 const EquipmentRental = () => {
-  const navigate = useNavigate();
   const [equipments, setEquipments] = useState<EquipmentWithStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);

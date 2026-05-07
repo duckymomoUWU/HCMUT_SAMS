@@ -7,7 +7,6 @@ import {
   Search,
   UserCheck,
   UserX,
-  ChevronDown,
 } from "lucide-react";
 import StatCard from "@/components/Admin/StatCard"; 
 import { getUsers } from "@/services/userService";

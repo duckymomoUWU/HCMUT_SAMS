@@ -57,12 +57,6 @@ const OrdersManagement = () => {
   const [dateFilter, setDateFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("Tất cả");
   const [orders, setOrders] = useState<Order[]>([]);
-  const [stats, setStats] = useState({
-    totalBookings: 0,
-    confirmedBookings: 0,
-    pendingBookings: 0,
-    totalRevenue: 0,
-  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -72,11 +66,6 @@ const OrdersManagement = () => {
       try {
         setLoading(true);
         setError(null);
-
-        // Fetch stats
-        const statsData = await bookingService.getBookingStats();
-        setStats(statsData || { totalBookings: 0, confirmedBookings: 0, pendingBookings: 0, totalRevenue: 0 });
-
 
         // Fetch bookings
         const bookingsData = await bookingService.getAdminBookings();
@@ -165,7 +154,7 @@ const OrdersManagement = () => {
   };
 
   const handleCancelRental = async (id: string) => {
-    const reason = prompt('Lý do hủy (tùy chọn):');
+    prompt('Lý do hủy (tùy chọn):');
     try {
       await equipmentRentalService.adminUpdateRentalStatus(id, 'cancelled');
       await refreshOrders();
@@ -392,7 +381,6 @@ const OrdersManagement = () => {
 
     const userName = (o.userId as any)?.fullName?.toLowerCase() || '';
     const userEmail = (o.userId as any)?.email?.toLowerCase() || '';
-    const orderId = o._id?.toLowerCase() || '';
 
     // Kiểm tra ID, Tên, Email
     const matchId = o._id.toLowerCase().includes(searchTerm);
@@ -597,12 +585,6 @@ const OrdersManagement = () => {
                 renting: "Đang thuê",
                 completed: "Hoàn thành",
                 cancelled: "Đã hủy",
-              };
-
-              const paymentStatusMap = {
-                unpaid: "Chưa thanh toán",
-                paid: "Đã thanh toán",
-                refunded: "Đã hoàn tiền",
               };
 
               const statusColor = o.type === 'booking' ? {

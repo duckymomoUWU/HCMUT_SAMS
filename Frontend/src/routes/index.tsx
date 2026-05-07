@@ -21,7 +21,6 @@ import Profile from "../pages/Client/Profile";
 import EquipmentRental from "../pages/Client/EquipmentRental";
 
 // Payment Pages
-import Payment from "../pages/Payment/PaymentResultPage";
 import PaymentResultPage from '../pages/Payment/PaymentResultPage';
 
 

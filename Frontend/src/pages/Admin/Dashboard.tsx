@@ -165,7 +165,7 @@ const Dashboard = () => {
     GroupedEquipment[]
   >([]);
 
-  const [todayBookings, setTodayBookings] = useState<CourtBooking[]>([]);
+
   const [allRecentBookings, setAllRecentBookings] = useState<CourtBooking[]>(
     [],
   );
@@ -191,7 +191,6 @@ const Dashboard = () => {
         const bookingsTodayData = await bookingService.getAllBookings({
           date: today,
         });
-        setTodayBookings(bookingsTodayData);
 
         const validBookings = bookingsTodayData.filter(
           (b) => b.status !== "cancelled",

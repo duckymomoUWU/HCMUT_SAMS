@@ -13,7 +13,7 @@ import {
   Loader2,
 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
-import userService, { type UserProfile } from "@/services/userService";
+import userService from "@/services/userService";
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState<
